@@ -59,7 +59,7 @@ def tap_pay(client: TapClient, uid: str, barcodes: list[str]) -> str:
             return f"need {format_yuan(need)}"
         return "need"
     if response.status_code == 404:
-        return "unknown card"
+        return "not found"
     return "error"
 
 
@@ -69,6 +69,8 @@ def tap_topup(client: TapClient, uid: str, amount_cents: int) -> str:
         "/pos/ledger",
         json={"uid": uid, "kind": "topup", "amount_cents": amount_cents},
     )
+    if response.status_code == 404:
+        return "unknown card"
     if response.status_code != 200:
         return "error"
     body = response.json()
@@ -80,8 +82,9 @@ def tap_topup(client: TapClient, uid: str, amount_cents: int) -> str:
 def run() -> None:
     parser = argparse.ArgumentParser(prog="store-tap")
     parser.add_argument("uid")
-    parser.add_argument("--item", action="append", default=[], dest="items")
-    parser.add_argument("--topup", type=int, metavar="YUAN")
+    exclusive = parser.add_mutually_exclusive_group()
+    exclusive.add_argument("--item", action="append", dest="items")
+    exclusive.add_argument("--topup", type=int, metavar="YUAN")
     args = parser.parse_args()
     settings = get_settings()
     url = f"http://{settings.pos_host}:{settings.pos_port}"

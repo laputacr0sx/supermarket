@@ -38,6 +38,8 @@ def test_pay_then_402_then_unknown_card():
         assert need.startswith("need")
         missing = tap_balance(client, "FFFFFFFF")
         assert missing == "unknown card"
+        bad_sku = tap_pay(client, "CAFEBABE", ["0000000000000"])
+        assert bad_sku == "not found"
 
 
 def test_402_then_topup_then_pay():
@@ -45,6 +47,6 @@ def test_402_then_topup_then_pay():
         need = tap_pay(client, "CAFEBABE", [CEREAL])
         assert need.startswith("need")
         topped = tap_topup(client, "CAFEBABE", 1000)
-        assert "15元" in topped or topped.startswith("topup")
+        assert topped == "topup 15元"
         paid = tap_pay(client, "CAFEBABE", [CEREAL])
         assert paid.startswith("paid")

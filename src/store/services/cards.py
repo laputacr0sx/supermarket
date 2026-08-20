@@ -8,6 +8,7 @@ from store.domain.errors import DuplicateCard, InvalidLedger
 from store.domain.uid import normalize_uid
 from store.persist import repo
 from store.persist.tables import Account, Card
+from store.services import ledger
 
 
 def enroll(
@@ -25,9 +26,14 @@ def enroll(
         raise InvalidLedger("opening")
     if repo.get_card_by_uid(session, uid) is not None:
         raise DuplicateCard(uid)
-    card = Card(uid=uid, child_name=name.strip() or uid, role=role, active=1)
+    label = name.strip()
+    if not label:
+        raise InvalidLedger("name")
+    card = Card(uid=uid, child_name=label, role=role, active=1)
     session.add(card)
     session.flush()
-    session.add(Account(card_id=card.id, balance_cents=opening_cents))
+    session.add(Account(card_id=card.id, balance_cents=0))
     session.flush()
+    if opening_cents > 0:
+        ledger.apply_ledger(session, uid, "topup", opening_cents)
     return card
