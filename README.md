@@ -33,6 +33,8 @@ uv run store-doctor
 uv run store-api
 ```
 
+Phone admin (same process): `http://<this-pc>:8788` with basic auth `admin` / `play`. Unfinished drafts, 上架, and 印一張標籤.
+
 In another terminal:
 
 ```
