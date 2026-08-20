@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     uid_debounce_s: float = 2.0
     staff_pin: str = "0000"
     admin_user: str = "admin"
-    admin_password: str = "play"
+    admin_password: str = ""
 
 
 _ENV_FOR_FIELD = {
