@@ -6,6 +6,10 @@ class UnknownCard(StoreError):
     pass
 
 
+class DuplicateCard(StoreError):
+    pass
+
+
 class InactiveCard(StoreError):
     pass
 
