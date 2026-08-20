@@ -4,9 +4,9 @@ currency = "HKD"
 locale = "zh_Hant_HK"
 
 [paths]
-# Windows default is %LOCALAPPDATA%\store\store.db (see store.config).
-# On the LIFEBOOK set this to /var/lib/store/store.db
-database = ""
+# Relative so `uv run store-seed` works on macOS, Windows, and Linux clones.
+# LIFEBOOK: STORE_DATABASE=/var/lib/store/store.db
+database = "data/store.db"
 sounds = ""
 product_images = ""
 
