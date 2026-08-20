@@ -1,0 +1,7 @@
+# Copy to the LIFEBOOK overlay after `lsusb` and `ls /dev/input/by-id`.
+# Vendor/product IDs also go in deploy/udev/99-store.rules.
+
+[devices]
+scanner = "/dev/input/store-scanner"
+keyboard = "/dev/input/by-id/usb-Fujitsu-event-kbd"
+nfc = "pcsc"

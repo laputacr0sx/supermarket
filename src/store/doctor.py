@@ -1,4 +1,4 @@
-"""Phase 1 doctor: no USB. Prints Python, DB path, and a ping."""
+"""Print Python, DB, and input devices. USB grab waits for the LIFEBOOK."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ from pathlib import Path
 
 from store.config import get_settings
 from store.persist.engine import make_engine
+
+_BY_ID = Path("/dev/input/by-id")
 
 
 def run() -> None:
@@ -23,7 +25,12 @@ def run() -> None:
         mode = conn.exec_driver_sql("PRAGMA journal_mode").scalar()
         print(f"journal  {mode}")
     engine.dispose()
-    print("phase    1 (Windows-safe; hardware checks wait for the LIFEBOOK)")
+    if _BY_ID.is_dir():
+        names = sorted(p.name for p in _BY_ID.iterdir())
+        print("by-id    " + (" ".join(names) if names else "(empty)"))
+    else:
+        print("by-id    (none — fill config/devices.example.toml on the LIFEBOOK)")
+    print("phase    2 (console scan + A4 labels; grab() needs Linux + gun)")
 
 
 if __name__ == "__main__":
