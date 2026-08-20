@@ -8,7 +8,20 @@ Products are EAN-13: real household packs keep their factory code; toys get a **
 
 **Implementation contract:** [docs/implementation-plan.md](docs/implementation-plan.md)
 
-**Git:** [CONTRIBUTING.md](CONTRIBUTING.md) — `main` stays green; short-lived branches; squash-merge PRs.
+**Git:** [CONTRIBUTING.md](CONTRIBUTING.md) — `main` stays green; short-lived branches; squash-merge PRs. Home and work both clone this GitHub repo; do not copy folders.
+
+**Another machine (first time):**
+
+```
+git clone https://github.com/laputacr0sx/supermarket.git
+cd supermarket
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -e ".[dev]"
+python -m pytest
+```
+
+Python **3.12+**. Each PC has its own `.venv` and SQLite file (`data/` is not in git). On a new Windows box also set LF (once): `git config --global core.autocrlf false` and `git config --global core.eol lf`.
 
 That plan locks hardware, OS/kiosk (Cage + Openbox fallback), **pygame-ce** for the kid till, process split (`store-api` / `store-kiosk`), schema, API, state machine, and build phases 0–8.
 

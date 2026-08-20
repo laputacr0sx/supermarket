@@ -9,7 +9,14 @@ Solo is fine. `main` still stays green.
 | `main` | Always shippable. No force-push. |
 | `feat/…` `fix/…` `chore/…` `docs/…` `test/…` | Short-lived. One concern. Delete after merge. |
 
-Until a GitHub remote exists, committing on `main` is ok. After the remote exists: branch, PR, merge.
+Home and work: GitHub is the handoff. Do not copy the folder. Never leave uncommitted work on one PC.
+
+```
+git checkout main
+git pull --ff-only
+```
+
+Unfinished work: commit on `feat/…` and `git push -u origin HEAD`, then pull that branch on the other PC. After the remote exists: branch, PR, merge. Do not commit straight to `main`.
 
 ## Commits
 
