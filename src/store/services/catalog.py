@@ -96,6 +96,10 @@ def finish(
     return product
 
 
+def list_drafts(session: Session) -> list[Product]:
+    return repo.list_drafts(session)
+
+
 def mint_store_drafts(
     session: Session,
     count: int,

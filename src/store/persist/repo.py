@@ -27,3 +27,8 @@ def last_open_sale(session: Session, card_id: int | None = None) -> Sale | None:
 
 def all_barcodes(session: Session) -> set[str]:
     return set(session.scalars(select(Product.barcode)).all())
+
+
+def list_drafts(session: Session) -> list[Product]:
+    stmt = select(Product).where(Product.status == "draft").order_by(Product.id)
+    return list(session.scalars(stmt))

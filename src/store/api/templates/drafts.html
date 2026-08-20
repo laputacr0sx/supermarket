@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ store_name }} 未完成</title>
+  <style>
+    body { font-family: sans-serif; margin: 1rem; background: #f6efe4; color: #2a2118; }
+    a.btn, button { display: inline-block; padding: 0.8rem 1.2rem; margin: 0.4rem 0;
+      font-size: 1.1rem; background: #c8161d; color: #fff; border: 0; border-radius: 8px;
+      text-decoration: none; }
+    li { margin: 1rem 0; padding: 0.8rem; background: #fffaf2; border-radius: 8px; }
+    input { font-size: 1.1rem; padding: 0.4rem; margin: 0.2rem; }
+  </style>
+</head>
+<body>
+  <h1>{{ store_name }} · 未完成</h1>
+  <p><a class="btn" href="/sheet.pdf">印一張標籤</a></p>
+  {% if not drafts %}
+    <p>沒有草稿。</p>
+  {% endif %}
+  <ul>
+  {% for p in drafts %}
+    <li>
+      <code>{{ p.barcode }}</code>
+      <form method="post" action="/products/{{ p.barcode }}/finish">
+        <input name="name" placeholder="名" required>
+        <input name="yuan" type="number" min="0" step="1" placeholder="元" required>
+        <button type="submit">上架</button>
+      </form>
+    </li>
+  {% endfor %}
+  </ul>
+</body>
+</html>

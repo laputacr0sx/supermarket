@@ -51,13 +51,15 @@ class Settings(BaseSettings):
     docs: bool = False
     pos_host: str = "127.0.0.1"
     pos_port: int = 8787
-    admin_host: str = "127.0.0.1"
+    admin_host: str = "0.0.0.0"
     admin_port: int = 8788
     learn_on_unknown: bool = True
     store_prefix_min: int = 200
     store_prefix_max: int = 299
     uid_debounce_s: float = 2.0
     staff_pin: str = "0000"
+    admin_user: str = "admin"
+    admin_password: str = "play"
 
 
 _ENV_FOR_FIELD = {
@@ -73,6 +75,8 @@ _ENV_FOR_FIELD = {
     "store_prefix_max": "STORE_STORE_PREFIX_MAX",
     "uid_debounce_s": "STORE_UID_DEBOUNCE_S",
     "staff_pin": "STORE_STAFF_PIN",
+    "admin_user": "STORE_ADMIN_USER",
+    "admin_password": "STORE_ADMIN_PASSWORD",
 }
 
 
