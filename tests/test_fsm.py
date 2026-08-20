@@ -1,4 +1,15 @@
-from store.kiosk.fsm import Barcode, PayReply, ScanReply, Tick, Uid, idle, step, view
+from store.kiosk.fsm import (
+    Barcode,
+    Key,
+    PayReply,
+    ScanReply,
+    StaffUnlock,
+    Tick,
+    Uid,
+    idle,
+    step,
+    view,
+)
 
 
 def _sell(name: str, barcode: str, cents: int) -> ScanReply:
@@ -67,3 +78,37 @@ def test_reject_keeps_cart():
     state, _ = step(state, ScanReply("reject", None), now=2)
     assert state.cart
     assert view(state).title == "唔識"
+
+
+def test_f6_ignored_in_idle():
+    state, effect = step(idle(), Key("F6"), now=0)
+    assert effect.kind == "none"
+    assert state.mode == "idle"
+
+
+def test_staff_f6_then_child_tap_emits_ledger():
+    state, _ = step(idle(), StaffUnlock(), now=0)
+    assert view(state).header == "STAFF"
+    state, _ = step(state, Key("F6"), now=1)
+    state, effect = step(state, Uid("DEADBEEF"), now=2)
+    assert effect.kind == "ledger"
+    assert effect.ledger_kind == "topup"
+    assert effect.amount_cents == 1000
+    assert effect.uid == "DEADBEEF"
+
+
+def test_esc_leaves_staff():
+    state, _ = step(idle(), StaffUnlock(), now=0)
+    state, _ = step(state, Key("Escape"), now=1)
+    assert state.mode == "idle"
+    assert view(state).header == "士多"
+
+
+def test_f8_needs_second_press():
+    state, _ = step(idle(), StaffUnlock(), now=0)
+    state, effect = step(state, Key("F8"), now=1)
+    assert effect.kind == "none"
+    state, effect = step(state, Key("F8"), now=2)
+    state, effect = step(state, Uid("DEADBEEF"), now=3)
+    assert effect.kind == "ledger"
+    assert effect.ledger_kind == "reset"

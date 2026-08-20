@@ -56,3 +56,20 @@ class Api:
             balance_cents=body.get("balance_cents"),
             name=str(body.get("name") or ""),
         )
+
+    def ledger(self, uid: str, kind: str, amount_cents: int | None) -> PayReply:
+        response = self._client.post(
+            "/pos/ledger",
+            json={"uid": uid, "kind": kind, "amount_cents": amount_cents},
+        )
+        if response.status_code != 200:
+            return PayReply("unknown")
+        body = response.json()
+        return PayReply("balance", balance_cents=body.get("balance_cents"))
+
+    def void_last(self) -> PayReply:
+        response = self._client.post("/pos/void-last", json={})
+        if response.status_code != 200:
+            return PayReply("unknown")
+        body = response.json()
+        return PayReply("balance", balance_cents=body.get("balance_cents"))

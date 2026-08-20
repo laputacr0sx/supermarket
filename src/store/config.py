@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     store_prefix_min: int = 200
     store_prefix_max: int = 299
     uid_debounce_s: float = 2.0
+    staff_pin: str = "0000"
 
 
 _ENV_FOR_FIELD = {
@@ -71,6 +72,7 @@ _ENV_FOR_FIELD = {
     "store_prefix_min": "STORE_STORE_PREFIX_MIN",
     "store_prefix_max": "STORE_STORE_PREFIX_MAX",
     "uid_debounce_s": "STORE_UID_DEBOUNCE_S",
+    "staff_pin": "STORE_STAFF_PIN",
 }
 
 

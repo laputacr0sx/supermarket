@@ -8,6 +8,8 @@ from store.domain.money import cents_to_yuan
 
 RESULT_S = 3.0
 FLASH_S = 2.0
+STAFF_S = 30.0
+TOPUP = {"F5": 500, "F6": 1000, "F7": 2000}
 
 
 @dataclass(frozen=True)
@@ -41,6 +43,7 @@ class KioskState:
     until: float | None
     last: Line | None
     overlay: dict
+    queue: dict
 
 
 @dataclass(frozen=True)
@@ -49,6 +52,8 @@ class Effect:
     code: str | None = None
     uid: str | None = None
     items: tuple[Line, ...] = ()
+    ledger_kind: str | None = None
+    amount_cents: int | None = None
 
 
 @dataclass(frozen=True)
@@ -63,6 +68,16 @@ class Uid:
 
 @dataclass(frozen=True)
 class Tick:
+    pass
+
+
+@dataclass(frozen=True)
+class Key:
+    name: str
+
+
+@dataclass(frozen=True)
+class StaffUnlock:
     pass
 
 
@@ -82,7 +97,7 @@ class PayReply:
 
 
 def idle() -> KioskState:
-    return KioskState("idle", (), None, None, None, {})
+    return KioskState("idle", (), None, None, None, {}, {})
 
 
 def _total(cart: tuple[Line, ...]) -> int:
@@ -110,10 +125,27 @@ def _add(cart: tuple[Line, ...], line: Line) -> tuple[Line, ...]:
 def step(state: KioskState, event: object, *, now: float) -> tuple[KioskState, Effect]:
     if isinstance(event, Tick) and state.until is not None and now >= state.until:
         mode = "cart" if state.cart else "idle"
-        return replace(state, mode=mode, result=None, until=None, overlay={}), Effect("none")
+        nxt = replace(state, mode=mode, result=None, until=None, overlay={}, queue={})
+        return nxt, Effect("none")
+    if isinstance(event, StaffUnlock):
+        nxt = replace(
+            state, mode="staff", result=None, until=now + STAFF_S, overlay={}, queue={}
+        )
+        return nxt, Effect("none")
+    if isinstance(event, Key):
+        return _on_key(state, event, now)
     if isinstance(event, Barcode):
         return state, Effect("scan", code=event.code)
     if isinstance(event, Uid):
+        if state.mode == "staff_queued" and state.queue:
+            return state, Effect(
+                "ledger",
+                uid=event.uid,
+                ledger_kind=str(state.queue.get("kind") or "topup"),
+                amount_cents=state.queue.get("amount_cents"),
+            )
+        if state.mode in {"staff", "staff_queued"}:
+            return state, Effect("none")
         if state.cart:
             return state, Effect("checkout", uid=event.uid, items=state.cart)
         return state, Effect("card", uid=event.uid)
@@ -121,6 +153,35 @@ def step(state: KioskState, event: object, *, now: float) -> tuple[KioskState, E
         return _on_scan(state, event, now)
     if isinstance(event, PayReply):
         return _on_pay(state, event, now)
+    return state, Effect("none")
+
+
+def _on_key(state: KioskState, event: Key, now: float) -> tuple[KioskState, Effect]:
+    if state.mode not in {"staff", "staff_queued"}:
+        return state, Effect("none")
+    name = event.name
+    if name == "Escape":
+        if state.mode == "staff_queued":
+            nxt = replace(state, mode="staff", queue={}, until=now + STAFF_S)
+            return nxt, Effect("none")
+        mode = "cart" if state.cart else "idle"
+        nxt = replace(state, mode=mode, queue={}, until=None)
+        return nxt, Effect("none")
+    if name in TOPUP:
+        queue = {"kind": "topup", "amount_cents": TOPUP[name]}
+        nxt = replace(state, mode="staff_queued", queue=queue, until=now + STAFF_S)
+        return nxt, Effect("none")
+    if name == "F8":
+        if state.queue.get("kind") == "reset" and state.queue.get("confirm"):
+            return state, Effect("none")
+        if state.queue.get("kind") == "reset":
+            queue = {"kind": "reset", "amount_cents": None, "confirm": True}
+        else:
+            queue = {"kind": "reset", "amount_cents": None, "confirm": False}
+        nxt = replace(state, mode="staff_queued", queue=queue, until=now + STAFF_S)
+        return nxt, Effect("none")
+    if name == "F10":
+        return state, Effect("void")
     return state, Effect("none")
 
 
@@ -163,6 +224,7 @@ def _on_pay(state: KioskState, event: PayReply, now: float) -> tuple[KioskState,
             last=None,
             until=now + RESULT_S,
             overlay=overlay,
+            queue={},
         ), Effect("none")
     if event.kind == "need":
         overlay = {"name": event.name, "need": event.need_cents}
@@ -240,4 +302,7 @@ def view(state: KioskState) -> ViewModel:
             f"×{qty}" if qty > 1 else "",
             count, "共", cents_to_yuan(total), "hot",
         )
-    return ViewModel("士多", "掃 · 拍", None, "idle", None, "掃嘢", "拍卡", "", "共", 0, "dim")
+    vm = ViewModel("士多", "掃 · 拍", None, "idle", None, "掃嘢", "拍卡", "", "共", 0, "dim")
+    if state.mode in {"staff", "staff_queued"}:
+        return replace(vm, header="STAFF", pill="F5–F10")
+    return vm
