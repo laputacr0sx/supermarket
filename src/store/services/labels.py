@@ -74,10 +74,12 @@ def _cell(c: Canvas, x: float, y: float, w: float, h: float, code: str) -> None:
     c.rect(x + 4, y + 4, w - 8, h - 8)
     c.setDash()
     if len(code) == 13 and code.isdigit():
-        widget = Ean13BarcodeWidget(code, barHeight=28, barWidth=1.1)
-        drawing = Drawing(w - 16, 40)
+        widget = Ean13BarcodeWidget(
+            code, barHeight=52, barWidth=1.1, humanReadable=0, quiet=1
+        )
+        drawing = Drawing(w - 16, 64)
         drawing.add(widget)
-        renderPDF.draw(drawing, c, x + 12, y + h - 58)
+        renderPDF.draw(drawing, c, x + 12, y + h - 78)
     c.setFont("Courier", 9)
     c.drawCentredString(x + w / 2, y + 22, code)
     c.setStrokeColorRGB(0.6, 0.6, 0.6)

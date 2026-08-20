@@ -4,7 +4,8 @@
 #   sudo udevadm control --reload && sudo udevadm trigger
 
 SUBSYSTEM=="input", ATTRS{idVendor}=="XXXX", ATTRS{idProduct}=="YYYY", \
-  ENV{ID_INPUT_KEYBOARD}="0", ENV{LIBINPUT_IGNORE_DEVICE}="1", \
+  ENV{ID_INPUT_KEYBOARD}="0", ENV{LIBINPUT_IGNORE_DEVICE}="1"
+KERNEL=="event*", SUBSYSTEM=="input", ATTRS{idVendor}=="XXXX", ATTRS{idProduct}=="YYYY", \
   SYMLINK+="input/store-scanner", GROUP="input", MODE="0660"
 
 # NFC USB (ACS ACR1552U family). Harmless if the reader is PC/SC-only.
