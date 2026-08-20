@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "store"
 version = "0.1.0"
-description = "Play supermarket till — Phase 2 scanner + labels"
+description = "Play supermarket till — Phase 3 NFC tap + enroll"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115",
@@ -32,6 +32,8 @@ store-seed = "store.seed:run"
 store-doctor = "store.doctor:run"
 store-scan = "store.scan_cli:run"
 store-labels = "store.labels_cli:run"
+store-enroll = "store.enroll_cli:run"
+store-tap = "store.tap_cli:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
