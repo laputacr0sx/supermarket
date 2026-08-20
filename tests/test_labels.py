@@ -1,6 +1,5 @@
 from store.persist import repo
 from store.services import labels
-from tests.conftest import CEREAL
 
 
 def test_print_sheet_mints_drafts_and_embeds_codes(seeded, tmp_path):
@@ -35,4 +34,4 @@ def test_reprint_rejects_unknown(seeded, tmp_path):
     from store.domain.errors import UnknownProduct
 
     with pytest.raises(UnknownProduct):
-        labels.reprint(seeded, tmp_path / "x.pdf", [CEREAL[:12] + "0"])
+        labels.reprint(seeded, tmp_path / "x.pdf", ["0000000000000"])
