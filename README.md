@@ -23,7 +23,7 @@ Python **3.12** (pinned in `.python-version`; uv installs it). Each PC has its o
 
 That plan locks hardware, OS/kiosk (Cage + Openbox fallback), **pygame-ce** for the kid till, process split (`store-api` / `store-kiosk`), schema, API, state machine, and build phases 0–8.
 
-**Phase 1 (same commands on every OS; same tree later copied to the LIFEBOOK):**
+**Phase 2 (same commands on every OS; gun grab waits for the LIFEBOOK):**
 
 ```
 uv sync
@@ -33,7 +33,14 @@ uv run store-doctor
 uv run store-api
 ```
 
-`store-api` listens on `http://127.0.0.1:8787`. Try `POST /pos/scan` with a seeded barcode. On the laptop set `STORE_DATABASE=/var/lib/store/store.db` — no code change.
+In another terminal:
+
+```
+uv run store-scan 4890000000010
+uv run store-labels data/labels.pdf
+```
+
+`store-scan` POSTs to `http://127.0.0.1:8787/pos/scan` (stdin if you omit the code). Ready cereal prints the name; a new valid pack prints `learned`; garbage prints `reject`. `store-labels` mints a 3×8 A4 sheet of shop drafts. On the LIFEBOOK set `STORE_DATABASE=/var/lib/store/store.db` and fill `deploy/udev/99-store.rules` from `lsusb`.
 
 Nothing else is installed on the LIFEBOOK until Phase 0. Domain and checkout tests (Phase 1) run here first.
 
