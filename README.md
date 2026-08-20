@@ -52,7 +52,16 @@ uv run store-tap CAFEBABE --topup 10
 uv run store-enroll AABBCCDD 杏 --yuan 15
 ```
 
-Empty tap prints the balance. A cart that costs too much prints `need`. `--topup` is yuan. Real PC/SC wait for the LIFEBOOK; type the UID for now. On that laptop set `STORE_DATABASE=/var/lib/store/store.db` and fill `deploy/udev/99-store.rules` from `lsusb`.
+Empty tap prints the balance. A cart that costs too much prints `need`. `--topup` is yuan.
+
+Kid till (window; pygame-ce extra). Type a barcode and Enter; `A` taps 樂樂, `S` taps 森:
+
+```
+uv sync --extra kiosk
+uv run --extra kiosk store-kiosk
+```
+
+Real PC/SC and gun grab wait for the LIFEBOOK. On that laptop set `STORE_DATABASE=/var/lib/store/store.db` and fill `deploy/udev/99-store.rules` from `lsusb`.
 
 Nothing else is installed on the LIFEBOOK until Phase 0. Domain and checkout tests (Phase 1) run here first.
 
