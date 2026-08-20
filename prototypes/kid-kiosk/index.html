@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>士多 — 小朋友收銀 demo</title>
+  <!--
+    PROTOTYPE — throwaway HTML. Production till is pygame-ce.
+
+    HK 士多: Traditional Chinese, fewest characters.
+    Money unit is 元 (integer 港元), not US $x.xx.
+    Item price + 共 (total) dominate the screen.
+
+    Keys: 1–5 scan, A/S tap 樂樂/森, C clear, F kid mode, Esc back.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --wood: #2a2118;
+      --ink: #2a2118;
+      --cream: #f6efe4;
+      --paper: #fffaf2;
+      --tomato: #d4532c;
+      --leaf: #1f7a45;
+      --gold: #e2a126;
+      --hkred: #c8161d;
+      --sky: #3d7ea6;
+      --nope: #b42318;
+      --ok: #1f7a45;
+      --amber: #f0b429;
+      --mute: #8a7b6b;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #16120e;
+      color: var(--ink);
+      font-family: "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
+      overflow: hidden;
+    }
+
+    .room {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 16px 16px 20px;
+    }
+    body.kid .room { padding: 0; gap: 0; }
+    body.kid .remote, body.kid .hint { display: none !important; }
+    body.kid .stage-wrap { border-radius: 0; box-shadow: none; }
+    body.kid, body.kid * { cursor: none !important; }
+    body.kid .stage { pointer-events: none; }
+
+    .hint {
+      color: #cbbba6;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      text-align: center;
+      max-width: 1366px;
+    }
+    .hint kbd {
+      background: #3a3026;
+      color: #f6efe4;
+      border-radius: 5px;
+      padding: 1px 6px;
+      font-family: inherit;
+      font-weight: 800;
+    }
+
+    .stage-wrap {
+      width: 1366px;
+      height: 768px;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      position: relative;
+      background: var(--cream);
+      flex: 0 0 auto;
+    }
+    body.kid .stage-wrap { border-radius: 0; }
+
+    .stage {
+      width: 1366px;
+      height: 768px;
+      transform-origin: top left;
+      background:
+        radial-gradient(1200px 500px at 50% -10%, #fff8ee 0%, transparent 55%),
+        var(--cream);
+      display: grid;
+      grid-template-rows: 88px 1fr 230px;
+      position: relative;
+    }
+    .stage.flash-nope { background: #f8d7d0; }
+    .stage.flash-ok { background: #dcefe0; }
+    .stage.flash-soft { background: #ffe9b3; }
+
+    header.shop {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      background: var(--wood);
+      color: var(--cream);
+    }
+    header.shop.staff { background: var(--amber); color: var(--wood); }
+    .mark {
+      font-weight: 900;
+      font-size: 48px;
+      letter-spacing: 0.04em;
+    }
+    .mark em {
+      font-style: normal;
+      color: var(--gold);
+    }
+    header.shop.staff .mark em { color: var(--wood); }
+    .pill {
+      font-size: 22px;
+      font-weight: 800;
+      background: rgba(255,255,255,0.08);
+      padding: 8px 18px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+    header.shop.staff .pill { background: rgba(42,33,24,0.12); }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 40px 0;
+      text-align: center;
+    }
+    .picture {
+      width: 200px;
+      height: 200px;
+      border-radius: 28px;
+      background: var(--paper);
+      box-shadow: 0 10px 0 rgba(42,33,24,0.08), 0 18px 40px rgba(42,33,24,0.12);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .picture img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #f4ede3;
+    }
+    .picture.pop { animation: pop 280ms ease; }
+    @keyframes pop {
+      0% { transform: scale(0.86); }
+      60% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .glyph {
+      font-size: 140px;
+      line-height: 1;
+    }
+    .barcode {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 120px;
+    }
+    .barcode i {
+      display: block;
+      background: #2a2118;
+      width: 6px;
+      border-radius: 1px;
+    }
+    .tag {
+      font-size: 96px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      color: var(--hkred);
+      margin: 2px 0 0;
+    }
+    .tag .unit { font-size: 0.46em; margin-left: 0.06em; }
+    .title {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      line-height: 1.1;
+      margin: 2px 0 0;
+      color: var(--ink);
+    }
+    .sub {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--mute);
+      margin-top: 2px;
+    }
+
+    footer.total {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding: 4px 48px 22px;
+    }
+    .count {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--mute);
+    }
+    .sum {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+    .sum-label {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--mute);
+    }
+    .money {
+      font-size: 120px;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      line-height: 0.85;
+      color: var(--ink);
+    }
+    .money .unit { font-size: 0.42em; margin-left: 0.04em; }
+    .money.gold { color: var(--leaf); }
+    .money.need { color: var(--nope); }
+    .money.dim { color: #c9b8a4; }
+    .money.hot { color: var(--hkred); }
+
+    .flash {
+      position: absolute;
+      inset: 96px 0 0;
+      display: grid;
+      place-items: center;
+      background: var(--cream);
+    }
+    .flash.nope { background: #fde8e4; }
+    .flash.ok { background: #e7f5ea; }
+    .flash.soft { background: #fff4d6; }
+
+    .remote {
+      width: min(100%, 1366px);
+      background: #241d17;
+      color: #f6efe4;
+      border-radius: 16px;
+      padding: 12px 14px 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px 14px;
+    }
+    .remote h2 {
+      grid-column: 1 / -1;
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #cbbba6;
+    }
+    .scans, .taps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    button.sku, button.act {
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 800;
+      border-radius: 12px;
+    }
+    button.sku {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #3a3026;
+      color: #fffaf2;
+      padding: 6px 12px 6px 6px;
+      font-size: 14px;
+    }
+    button.sku img, button.sku .mini {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: #f4ede3;
+    }
+    button.sku .mini {
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+    button.sku small {
+      display: block;
+      font-size: 11px;
+      color: #cbbba6;
+      font-weight: 700;
+    }
+    button.act {
+      padding: 10px 14px;
+      font-size: 14px;
+      background: #3d7ea6;
+      color: white;
+    }
+    button.act.alex { background: var(--leaf); }
+    button.act.sam { background: var(--tomato); }
+    button.act.ghost { background: #3a3026; color: #f6efe4; }
+    button.act.gold { background: var(--gold); color: var(--wood); }
+
+    .phone-layer {
+      position: fixed;
+      inset: 0;
+      background: rgba(16,12,8,0.72);
+      display: none;
+      place-items: center;
+      z-index: 20;
+    }
+    .phone-layer[data-open="1"] { display: grid; }
+    .phone {
+      width: 360px;
+      height: 720px;
+      background: #fffaf2;
+      color: var(--ink);
+      border-radius: 36px;
+      padding: 28px 20px 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      overflow: auto;
+    }
+    .phone h3 { margin: 0 0 6px; font-size: 28px; }
+    .phone p.lead { margin: 0 0 16px; color: var(--mute); font-weight: 700; }
+    .draft {
+      background: white;
+      border: 2px solid #eadfce;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .draft strong { display: block; font-size: 18px; }
+    .draft code { color: var(--mute); font-size: 13px; }
+    .fields { display: grid; gap: 8px; margin-top: 10px; }
+    .fields input {
+      font: 700 16px "Noto Sans HK", sans-serif;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid #eadfce;
+    }
+    .fields button {
+      font: 900 16px "Noto Sans HK", sans-serif;
+      border: 0;
+      background: var(--leaf);
+      color: white;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="room">
+    <p class="hint">
+      士多 demo（港元／元，唔用 $）。<kbd>F</kbd> 全螢幕。
+      <kbd>1</kbd>–<kbd>5</kbd> 掃 · <kbd>A</kbd> 樂樂 · <kbd>S</kbd> 森 · <kbd>C</kbd> 清 · <kbd>Esc</kbd> 返
+    </p>
+
+    <div class="stage-wrap" id="wrap">
+      <div class="stage" id="stage"></div>
+    </div>
+
+    <div class="remote">
+      <h2>大人遙控 — 小朋友唔好睇</h2>
+      <div class="scans">
+        <button class="sku" data-scan="cereal"><img src="assets/cereal.jpg" alt="" /><span>麥片 <small>12元</small></span></button>
+        <button class="sku" data-scan="milk"><img src="assets/milk.jpg" alt="" /><span>牛奶 <small>8元</small></span></button>
+        <button class="sku" data-scan="tomato"><img src="assets/tomato.jpg" alt="" /><span>番茄 <small>店標 · 3元</small></span></button>
+        <button class="sku" data-scan="toothpaste"><span class="mini">□</span><span>牙膏 <small>未入 → 記低</small></span></button>
+        <button class="sku" data-scan="apple"><span class="mini">◌</span><span>貼紙 <small>未寫名</small></span></button>
+        <button class="sku" data-scan="junk"><span class="mini">?</span><span>亂碼 <small>唔識</small></span></button>
+      </div>
+      <div class="taps">
+        <button class="act alex" data-tap="alex">樂樂 30元</button>
+        <button class="act sam" data-tap="sam">森 5元</button>
+        <button class="act ghost" id="clear">清</button>
+        <button class="act ghost" id="phoneBtn">大人機</button>
+        <button class="act gold" id="kidMode">畀睇</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone-layer" id="phoneLayer" hidden>
+    <div class="phone" id="phone"></div>
+  </div>
+
+  <script>
+    const CATALOG = {
+      cereal: { id: "cereal", name: "麥片", price: 12, status: "ready", origin: "household", img: "assets/cereal.jpg", code: "5412345123451" },
+      milk: { id: "milk", name: "牛奶", price: 8, status: "ready", origin: "household", img: "assets/milk.jpg", code: "4006381333931" },
+      tomato: { id: "tomato", name: "番茄", price: 3, status: "ready", origin: "store", img: "assets/tomato.jpg", code: "2847193058264" },
+      toothpaste: { id: "toothpaste", name: null, price: null, status: "unknown", origin: "household", img: null, code: "5901234123457", valid: true },
+      apple: { id: "apple", name: null, price: null, status: "draft", origin: "store", img: null, code: "2718403957618", valid: true },
+      junk: { id: "junk", name: null, price: null, status: "invalid", valid: false, code: "http://box" },
+    };
+
+    const money = (yuan) =>
+      yuan === "" || yuan == null
+        ? ""
+        : `<span class="n">${yuan}</span><span class="unit">元</span>`;
+
+    const state = {
+      screen: "idle",
+      cart: [],
+      last: null,
+      result: null,
+      cards: { alex: { name: "樂樂", balance: 30 }, sam: { name: "森", balance: 5 } },
+      drafts: [
+        { id: "apple", code: "2718403957618", origin: "store", name: "", price: "" },
+      ],
+      timer: null,
+    };
+
+    const bars = () => {
+      const widths = [4, 8, 4, 12, 6, 4, 10, 6, 4, 14, 4, 8, 4, 10, 6, 4, 12, 4, 8, 6];
+      return `<div class="barcode">${widths.map((h) => `<i style="height:${h * 7}px"></i>`).join("")}</div>`;
+    };
+
+    function cartTotal() {
+      return state.cart.reduce((s, l) => s + l.price * l.qty, 0);
+    }
+    function cartCount() {
+      return state.cart.reduce((s, l) => s + l.qty, 0);
+    }
+
+    function beep(kind) {
+      const ctx = beep.ctx || (beep.ctx = new (window.AudioContext || window.webkitAudioContext)());
+      const now = ctx.currentTime;
+      const notes = {
+        sell: [880, 0.07],
+        nope: [160, 0.22],
+        saved: [520, 0.12],
+        paid: [523, 0.1],
+      };
+      const play = (freq, dur, t, type = "square") => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = type;
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.08, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start(t);
+        o.stop(t + dur + 0.02);
+      };
+      if (kind === "paid") {
+        play(523, 0.1, now);
+        play(659, 0.1, now + 0.1);
+        play(784, 0.18, now + 0.2);
+      } else {
+        const [f, d] = notes[kind] || notes.sell;
+        play(f, d, now, kind === "nope" ? "sawtooth" : "square");
+      }
+    }
+
+    function after(ms, fn) {
+      clearTimeout(state.timer);
+      state.timer = setTimeout(fn, ms);
+    }
+
+    function scan(id) {
+      const p = CATALOG[id];
+      if (!p) return;
+      if (p.status === "ready") {
+        const line = state.cart.find((l) => l.id === p.id);
+        if (line) line.qty += 1;
+        else state.cart.push({ ...p, qty: 1 });
+        state.last = p;
+        state.screen = "cart";
+        state.result = null;
+        beep("sell");
+        render();
+        return;
+      }
+      if (p.status === "unknown" && p.valid) {
+        p.status = "draft";
+        if (!state.drafts.some((d) => d.code === p.code)) {
+          state.drafts.push({ id: p.id, code: p.code, origin: p.origin, name: "", price: "" });
+        }
+        state.result = { kind: "learned", code: p.code.slice(-4) };
+        state.screen = "result";
+        beep("saved");
+        render();
+        after(6000, backFromResult);
+        return;
+      }
+      if (p.status === "draft") {
+        state.result = { kind: "pending", code: p.code.slice(-4) };
+        state.screen = "result";
+        beep("saved");
+        render();
+        after(6000, backFromResult);
+        return;
+      }
+      state.result = { kind: "unknown" };
+      state.screen = "result";
+      beep("nope");
+      render();
+      after(4000, backFromResult);
+    }
+
+    function backFromResult() {
+      state.result = null;
+      state.screen = state.cart.length ? "cart" : "idle";
+      render();
+    }
+
+    function tap(who) {
+      const card = state.cards[who];
+      if (!card) return;
+      if (!state.cart.length) {
+        state.result = { kind: "balance", name: card.name, balance: card.balance };
+        state.screen = "result";
+        beep("saved");
+        render();
+        after(6000, backFromResult);
+        return;
+      }
+      const total = cartTotal();
+      if (card.balance < total) {
+        state.result = { kind: "need", need: total - card.balance, name: card.name };
+        state.screen = "result";
+        beep("nope");
+        render();
+        after(6000, backFromResult);
+        return;
+      }
+      card.balance -= total;
+      state.result = { kind: "paid", name: card.name, total, balance: card.balance };
+      state.screen = "result";
+      state.cart = [];
+      state.last = null;
+      beep("paid");
+      render();
+      after(6000, backFromResult);
+    }
+
+    function clearCart() {
+      state.cart = [];
+      state.last = null;
+      state.result = null;
+      state.screen = "idle";
+      render();
+    }
+
+    function finishDraft(code, name, price) {
+      const d = state.drafts.find((x) => x.code === code);
+      if (!d || !name || !price) return;
+      d.name = name;
+      d.price = price;
+      const yuan = parseInt(price, 10);
+      if (Number.isNaN(yuan) || yuan < 0) return;
+      const p = Object.values(CATALOG).find((x) => x.code === code);
+      if (p) {
+        p.status = "ready";
+        p.name = name;
+        p.price = yuan;
+      }
+      renderPhone();
+      render();
+    }
+
+    function pictureHTML(kind, last) {
+      if (kind === "paid" || kind === "balance") {
+        return `<div class="picture pop"><img src="assets/card.jpg" alt="" /></div>`;
+      }
+      if (kind === "need") {
+        return `<div class="picture pop"><img src="assets/card.jpg" alt="" /></div>`;
+      }
+      if (kind === "learned" || kind === "pending" || kind === "unknown") {
+        return `<div class="picture pop">${bars()}</div>`;
+      }
+      if (last && last.img) {
+        return `<div class="picture pop"><img src="${last.img}" alt="" /></div>`;
+      }
+      return `<div class="picture"><span class="glyph">🛒</span></div>`;
+    }
+
+    function view() {
+      const staff = false;
+      if (state.screen === "result" && state.result) {
+        const r = state.result;
+        const map = {
+          paid: {
+            cls: "ok",
+            tag: money(r.total),
+            title: "得",
+            sub: `${r.name} 剩`,
+            money: money(r.balance),
+            moneyCls: "gold",
+            count: "",
+            sumLabel: "剩",
+          },
+          need: {
+            cls: "nope",
+            tag: "",
+            title: "唔夠",
+            sub: r.name,
+            money: money(r.need),
+            moneyCls: "need",
+            count: `${cartCount()}件`,
+            sumLabel: "差",
+          },
+          learned: {
+            cls: "soft",
+            tag: "",
+            title: "記低",
+            sub: `叫大人 ·${r.code}`,
+            money: state.cart.length ? money(cartTotal()) : "",
+            moneyCls: state.cart.length ? "hot" : "dim",
+            count: state.cart.length ? `${cartCount()}件` : "未賣",
+            sumLabel: state.cart.length ? "共" : "",
+          },
+          pending: {
+            cls: "soft",
+            tag: "",
+            title: "問大人",
+            sub: `·${r.code}`,
+            money: state.cart.length ? money(cartTotal()) : "",
+            moneyCls: state.cart.length ? "hot" : "dim",
+            count: state.cart.length ? `${cartCount()}件` : "",
+            sumLabel: state.cart.length ? "共" : "",
+          },
+          unknown: {
+            cls: "nope",
+            tag: "",
+            title: "唔識",
+            sub: "",
+            money: state.cart.length ? money(cartTotal()) : "",
+            moneyCls: state.cart.length ? "hot" : "",
+            count: state.cart.length ? `${cartCount()}件` : "",
+            sumLabel: state.cart.length ? "共" : "",
+          },
+          balance: {
+            cls: "ok",
+            tag: money(r.balance),
+            title: r.name,
+            sub: "餘",
+            money: money(r.balance),
+            moneyCls: "gold",
+            count: "",
+            sumLabel: "餘",
+          },
+        };
+        const v = map[r.kind];
+        return { header: "士多", staff, ...v, pic: pictureHTML(r.kind, null), flash: v.cls };
+      }
+      if (state.screen === "cart" && state.last) {
+        const qty = state.cart.find((l) => l.id === state.last.id)?.qty || 1;
+        return {
+          header: "士多",
+          staff,
+          tag: money(state.last.price),
+          title: state.last.name,
+          sub: qty > 1 ? `×${qty}` : "",
+          money: money(cartTotal()),
+          moneyCls: "hot",
+          count: `${cartCount()}件`,
+          sumLabel: "共",
+          pic: pictureHTML("cart", state.last),
+          flash: null,
+        };
+      }
+      return {
+        header: "士多",
+        staff,
+        tag: "",
+        title: "掃嘢",
+        sub: "拍卡",
+        money: money(0),
+        moneyCls: "dim",
+        count: "",
+        sumLabel: "共",
+        pic: pictureHTML("idle", null),
+        flash: null,
+      };
+    }
+
+    function render() {
+      const v = view();
+      const stage = document.getElementById("stage");
+      stage.className = "stage" + (v.flash ? ` flash-${v.flash}` : "");
+      stage.innerHTML = `
+        <header class="shop ${v.staff ? "staff" : ""}">
+          <div class="mark">${v.header}</div>
+          <div class="pill">${v.staff ? "職員" : "掃 · 拍"}</div>
+        </header>
+        <section class="hero">
+          ${v.pic}
+          ${v.tag ? `<div class="tag">${v.tag}</div>` : ""}
+          <h1 class="title">${v.title}</h1>
+          ${v.sub ? `<div class="sub">${v.sub}</div>` : ""}
+        </section>
+        <footer class="total">
+          <div class="count">${v.count || ""}</div>
+          <div class="sum">
+            ${v.sumLabel && v.money ? `<span class="sum-label">${v.sumLabel}</span>` : ""}
+            <div class="money ${v.moneyCls}">${v.money || ""}</div>
+          </div>
+        </footer>
+      `;
+    }
+
+    function renderPhone() {
+      const rows = state.drafts.map((d) => {
+        const ready = d.name && d.price;
+        return `
+          <div class="draft">
+            <strong>${ready ? d.name : "未寫"}</strong>
+            <code>${d.origin === "store" ? "店" : "屋"} · ${d.code}</code>
+            ${ready ? `<p>已上架 ${d.price}元</p>` : `
+              <div class="fields">
+                <input data-name="${d.code}" placeholder="名" />
+                <input data-price="${d.code}" placeholder="幾元" inputmode="numeric" />
+                <button data-finish="${d.code}">上架</button>
+              </div>`}
+          </div>`;
+      }).join("");
+      document.getElementById("phone").innerHTML = `
+        <h3>未寫</h3>
+        <p class="lead">細路掃咗。你填名同幾元。</p>
+        ${rows || "<p>無嘢。</p>"}
+        <p class="lead" style="margin-top:18px">撳外面關。</p>
+      `;
+    }
+
+    function setPhone(open) {
+      const el = document.getElementById("phoneLayer");
+      if (open) {
+        renderPhone();
+        el.hidden = false;
+        el.dataset.open = "1";
+      } else {
+        el.hidden = true;
+        delete el.dataset.open;
+      }
+    }
+
+    function scale() {
+      const wrap = document.getElementById("wrap");
+      const stage = document.getElementById("stage");
+      const kid = document.body.classList.contains("kid");
+      const maxW = window.innerWidth - (kid ? 0 : 32);
+      const maxH = window.innerHeight - (kid ? 0 : 220);
+      const s = Math.min(maxW / 1366, maxH / 768, 1);
+      wrap.style.width = `${1366 * s}px`;
+      wrap.style.height = `${768 * s}px`;
+      stage.style.transform = `scale(${s})`;
+    }
+
+    function setKid(on) {
+      document.body.classList.toggle("kid", on);
+      if (on) {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen?.();
+      }
+      requestAnimationFrame(scale);
+    }
+
+    document.querySelectorAll("[data-scan]").forEach((b) => {
+      b.addEventListener("click", () => scan(b.dataset.scan));
+    });
+    document.querySelectorAll("[data-tap]").forEach((b) => {
+      b.addEventListener("click", () => tap(b.dataset.tap));
+    });
+    document.getElementById("clear").onclick = clearCart;
+    document.getElementById("kidMode").onclick = () => setKid(true);
+    document.getElementById("phoneBtn").onclick = () => setPhone(true);
+    document.getElementById("phoneLayer").onclick = (e) => {
+      if (e.target.id === "phoneLayer") setPhone(false);
+    };
+    document.getElementById("phone").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-finish]");
+      if (!btn) return;
+      const code = btn.dataset.finish;
+      const name = document.querySelector(`[data-name="${code}"]`)?.value.trim();
+      const price = document.querySelector(`[data-price="${code}"]`)?.value.trim();
+      finishDraft(code, name, price);
+    });
+
+    const keys = {
+      Digit1: () => scan("cereal"),
+      Digit2: () => scan("milk"),
+      Digit3: () => scan("tomato"),
+      Digit4: () => scan("toothpaste"),
+      Digit5: () => scan("apple"),
+      Digit6: () => scan("junk"),
+      KeyA: () => tap("alex"),
+      KeyS: () => tap("sam"),
+      KeyC: () => clearCart(),
+      KeyF: () => setKid(true),
+      KeyP: () => setPhone(document.getElementById("phoneLayer").hidden),
+      Escape: () => {
+        setPhone(false);
+        setKid(false);
+      },
+    };
+    window.addEventListener("keydown", (e) => {
+      if (e.target.matches("input, textarea")) return;
+      const fn = keys[e.code];
+      if (fn) {
+        e.preventDefault();
+        fn();
+      }
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement) document.body.classList.remove("kid");
+      requestAnimationFrame(scale);
+    });
+    window.addEventListener("resize", scale);
+    render();
+    scale();
+  </script>
+</body>
+</html>

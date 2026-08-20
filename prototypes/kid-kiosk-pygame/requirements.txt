@@ -1,0 +1,3 @@
+# pygame-ce is the pygame API (import pygame) and ships cp314 wheels.
+# Official pygame 2.6 has no Windows wheel for Python 3.14 yet.
+pygame-ce>=2.5
