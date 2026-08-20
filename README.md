@@ -10,30 +10,27 @@ Products are EAN-13: real household packs keep their factory code; toys get a **
 
 **Git:** [CONTRIBUTING.md](CONTRIBUTING.md) — `main` stays green; short-lived branches; squash-merge PRs. Home and work both clone this GitHub repo; do not copy folders.
 
-**Another machine (first time):**
+**Another machine (first time):** install [uv](https://docs.astral.sh/uv/getting-started/installation/) once, then the same commands on macOS, Windows, and Linux:
 
 ```
 git clone https://github.com/laputacr0sx/supermarket.git
 cd supermarket
-python -m venv .venv
-.venv\Scripts\activate
-python -m pip install -e ".[dev]"
-python -m pytest
+uv sync
+uv run pytest
 ```
 
-Python **3.12+**. Each PC has its own `.venv` and SQLite file (`data/` is not in git). On a new Windows box also set LF (once): `git config --global core.autocrlf false` and `git config --global core.eol lf`.
+Python **3.12** (pinned in `.python-version`; uv installs it). Each PC has its own `.venv` and SQLite file (`data/` is not in git). On a new Windows box also set LF (once): `git config --global core.autocrlf false` and `git config --global core.eol lf`.
 
 That plan locks hardware, OS/kiosk (Cage + Openbox fallback), **pygame-ce** for the kid till, process split (`store-api` / `store-kiosk`), schema, API, state machine, and build phases 0–8.
 
-**Phase 1 (Windows, same tree later copied to the LIFEBOOK):**
+**Phase 1 (same commands on every OS; same tree later copied to the LIFEBOOK):**
 
 ```
-python -m pip install -e ".[dev]"
-python -m pytest
-set STORE_DATABASE=data\store.db
-store-seed
-store-doctor
-store-api
+uv sync
+uv run pytest
+uv run store-seed
+uv run store-doctor
+uv run store-api
 ```
 
 `store-api` listens on `http://127.0.0.1:8787`. Try `POST /pos/scan` with a seeded barcode. On the laptop set `STORE_DATABASE=/var/lib/store/store.db` — no code change.

@@ -19,9 +19,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "ruff>=0.8"]
 kiosk = ["pygame-ce>=2.5"]
 linux = ["evdev>=1.7", "pyscard>=2.1", "python-escpos>=3.1"]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "ruff>=0.8"]
 
 [project.scripts]
 store-api = "store.api.app:run"
@@ -33,7 +35,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+# "." so `uv run pytest` (console script) can import `tests.*`; `src` for the package.
+pythonpath = [".", "src"]
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.ruff]

@@ -29,8 +29,9 @@ Never commit `data/`, `*.db`, `.env`, secrets, or full card UIDs.
 ## Before you push
 
 ```
-python -m ruff check .
-python -m pytest
+uv sync
+uv run ruff check .
+uv run pytest
 ```
 
 ## Pull request

@@ -4,6 +4,6 @@
 
 ## Check
 
-- [ ] `python -m ruff check .`
-- [ ] `python -m pytest`
+- [ ] `uv run ruff check .`
+- [ ] `uv run pytest`
 - [ ] no `data/`, `.env`, or secrets
