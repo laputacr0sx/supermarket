@@ -1,0 +1,26 @@
+[store]
+name = "士多"
+currency = "HKD"
+locale = "zh_Hant_HK"
+
+[paths]
+# Windows default is %LOCALAPPDATA%\store\store.db (see store.config).
+# On the LIFEBOOK set this to /var/lib/store/store.db
+database = ""
+sounds = ""
+product_images = ""
+
+[net]
+pos_host = "127.0.0.1"
+pos_port = 8787
+admin_host = "127.0.0.1"
+admin_port = 8788
+docs = false
+
+[catalog]
+learn_on_unknown = true
+store_prefix_min = 200
+store_prefix_max = 299
+
+[play]
+uid_debounce_s = 2
