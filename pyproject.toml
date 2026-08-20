@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "store"
+version = "0.1.0"
+description = "Play supermarket till — Phase 1 API + schema"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "sqlalchemy>=2.0.36",
+  "alembic>=1.14",
+  "pydantic-settings>=2.6",
+  "httpx2>=2.0",
+  "jinja2>=3.1",
+  "python-multipart>=0.0.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "ruff>=0.8"]
+kiosk = ["pygame-ce>=2.5"]
+linux = ["evdev>=1.7", "pyscard>=2.1", "python-escpos>=3.1"]
+
+[project.scripts]
+store-api = "store.api.app:run"
+store-seed = "store.seed:run"
+store-doctor = "store.doctor:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
