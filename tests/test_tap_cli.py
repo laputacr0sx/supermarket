@@ -4,7 +4,7 @@ from store.api.app import create_app
 from store.config import Settings
 from store.persist.engine import create_schema, make_engine, make_session_factory
 from store.seed import seed_session
-from store.tap_cli import format_balance, tap_balance, tap_pay
+from store.tap_cli import format_balance, tap_balance, tap_pay, tap_topup
 from tests.conftest import CEREAL
 
 
@@ -38,3 +38,13 @@ def test_pay_then_402_then_unknown_card():
         assert need.startswith("need")
         missing = tap_balance(client, "FFFFFFFF")
         assert missing == "unknown card"
+
+
+def test_402_then_topup_then_pay():
+    with _client() as client:
+        need = tap_pay(client, "CAFEBABE", [CEREAL])
+        assert need.startswith("need")
+        topped = tap_topup(client, "CAFEBABE", 1000)
+        assert "15元" in topped or topped.startswith("topup")
+        paid = tap_pay(client, "CAFEBABE", [CEREAL])
+        assert paid.startswith("paid")

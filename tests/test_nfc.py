@@ -1,3 +1,5 @@
+import pytest
+
 from store.io.nfc import accept_tap, normalize_uid
 
 
@@ -6,8 +8,6 @@ def test_normalize_strips_colons_and_spaces():
 
 
 def test_normalize_rejects_non_hex():
-    import pytest
-
     with pytest.raises(ValueError):
         normalize_uid("hello")
 
