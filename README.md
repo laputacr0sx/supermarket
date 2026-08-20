@@ -8,6 +8,8 @@ Products are EAN-13: real household packs keep their factory code; toys get a **
 
 **Implementation contract:** [docs/implementation-plan.md](docs/implementation-plan.md)
 
+**Git:** [CONTRIBUTING.md](CONTRIBUTING.md) — `main` stays green; short-lived branches; squash-merge PRs.
+
 That plan locks hardware, OS/kiosk (Cage + Openbox fallback), **pygame-ce** for the kid till, process split (`store-api` / `store-kiosk`), schema, API, state machine, and build phases 0–8.
 
 **Phase 1 (Windows, same tree later copied to the LIFEBOOK):**

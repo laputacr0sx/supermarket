@@ -746,7 +746,7 @@ Environment overrides for tests: `STORE_DATABASE=:memory:`, `STORE_DOCS=true`.
 - Kiosk maps errors to `ViewModel` + sound.
 - One writer process for SQLite (`store-api`). Kiosk never opens the DB file.
 - Logging: structlog or stdlib JSON to journald. Never log full card UIDs in info; last 4 hex is enough.
-- Format: Ruff + pytest in CI later. For now, `pytest` must pass on every phase that adds logic.
+- Format: Ruff + pytest in CI (see [CONTRIBUTING.md](../CONTRIBUTING.md)). `pytest` must pass on every phase that adds logic.
 
 ---
 
