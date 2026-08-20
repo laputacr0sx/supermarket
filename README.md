@@ -40,7 +40,19 @@ uv run store-scan 4890000000010
 uv run store-labels data/labels.pdf
 ```
 
-`store-scan` POSTs to `http://127.0.0.1:8787/pos/scan` (stdin if you omit the code). Ready cereal prints the name; a new valid pack prints `learned`; garbage prints `reject`. `store-labels` mints a 3×8 A4 sheet of shop drafts. On the LIFEBOOK set `STORE_DATABASE=/var/lib/store/store.db` and fill `deploy/udev/99-store.rules` from `lsusb`.
+`store-scan` POSTs to `http://127.0.0.1:8787/pos/scan`. Ready cereal prints the name; a new valid pack prints `learned`; garbage prints `reject`. `store-labels` mints a 3×8 A4 sheet of shop drafts.
+
+With `store-api` still running:
+
+```
+uv run store-tap DEADBEEF
+uv run store-tap DEADBEEF --item 4890000000010
+uv run store-tap CAFEBABE --item 4890000000010
+uv run store-tap CAFEBABE --topup 10
+uv run store-enroll AABBCCDD 杏 --yuan 15
+```
+
+Empty tap prints the balance. A cart that costs too much prints `need`. `--topup` is yuan. Real PC/SC wait for the LIFEBOOK; type the UID for now. On that laptop set `STORE_DATABASE=/var/lib/store/store.db` and fill `deploy/udev/99-store.rules` from `lsusb`.
 
 Nothing else is installed on the LIFEBOOK until Phase 0. Domain and checkout tests (Phase 1) run here first.
 
