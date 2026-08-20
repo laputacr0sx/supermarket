@@ -1,17 +1,8 @@
-"""NFC UID normalize and 2s debounce. PC/SC grab waits for the LIFEBOOK."""
+"""NFC UID debounce. PC/SC grab waits for the LIFEBOOK."""
 
 from __future__ import annotations
 
-import re
-
-_HEX = re.compile(r"^[0-9A-F]+$")
-
-
-def normalize_uid(raw: str) -> str:
-    uid = raw.upper().replace(":", "").replace(" ", "")
-    if not uid or not _HEX.fullmatch(uid):
-        raise ValueError("uid")
-    return uid
+from store.domain.uid import normalize_uid
 
 
 def accept_tap(

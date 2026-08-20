@@ -10,7 +10,7 @@ import httpx2
 
 from store.config import get_settings
 from store.domain.money import format_yuan, yuan_to_cents
-from store.io.nfc import normalize_uid
+from store.domain.uid import normalize_uid
 
 
 class TapClient(Protocol):

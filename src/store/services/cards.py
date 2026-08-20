@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from store.domain.errors import DuplicateCard, InvalidLedger
-from store.io.nfc import normalize_uid
+from store.domain.uid import normalize_uid
 from store.persist import repo
 from store.persist.tables import Account, Card
 
