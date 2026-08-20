@@ -10,6 +10,7 @@ W, H = 1366, 768
 HEADER_H = 88
 FOOTER_H = 230
 WOOD = (42, 33, 24)
+AMBER = (186, 96, 32)
 CREAM = (246, 239, 228)
 PAPER = (255, 250, 242)
 INK = (42, 33, 24)
@@ -44,7 +45,8 @@ def paint(pygame, fonts, dest, vm: ViewModel) -> None:
     elif vm.flash == "soft":
         bg = SOFT_BG
     dest.fill(bg)
-    pygame.draw.rect(dest, WOOD, (0, 0, W, HEADER_H))
+    bar = AMBER if vm.header == "STAFF" else WOOD
+    pygame.draw.rect(dest, bar, (0, 0, W, HEADER_H))
     mark = fonts.render(vm.header, 48, CREAM)
     dest.blit(mark, (40, (HEADER_H - mark.get_height()) // 2))
     cx = W // 2

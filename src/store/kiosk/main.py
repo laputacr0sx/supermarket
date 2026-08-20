@@ -9,7 +9,7 @@ from store.config import get_settings
 from store.io.scanner import assemble
 from store.kiosk.client import Api
 from store.kiosk.draw import H, W, find_cjk_font, paint
-from store.kiosk.fsm import Barcode, Tick, Uid, idle, step, view
+from store.kiosk.fsm import Barcode, Key, StaffUnlock, Tick, Uid, idle, step, view
 
 DEMO = {
     "a": "DEADBEEF",
@@ -24,6 +24,11 @@ def _apply(state, effect, api):
         return step(state, api.pay(effect.uid, effect.items), now=time.monotonic())[0]
     if effect.kind == "card" and effect.uid:
         return step(state, api.card(effect.uid), now=time.monotonic())[0]
+    if effect.kind == "ledger" and effect.uid and effect.ledger_kind:
+        reply = api.ledger(effect.uid, effect.ledger_kind, effect.amount_cents)
+        return step(state, reply, now=time.monotonic())[0]
+    if effect.kind == "void":
+        return step(state, api.void_last(), now=time.monotonic())[0]
     return state
 
 
@@ -58,8 +63,18 @@ def run() -> None:
     api = Api(f"http://{settings.pos_host}:{settings.pos_port}")
     state = idle()
     keys: list[tuple[str, int]] = []
+    pin: list[str] = []
+    waiting_pin = False
     running = True
     clock = pygame.time.Clock()
+    mods_staff = pygame.KMOD_CTRL | pygame.KMOD_ALT | pygame.KMOD_SHIFT
+    fkeys = {
+        pygame.K_F5: "F5",
+        pygame.K_F6: "F6",
+        pygame.K_F7: "F7",
+        pygame.K_F8: "F8",
+        pygame.K_F10: "F10",
+    }
     try:
         while running:
             now = time.monotonic()
@@ -69,7 +84,27 @@ def run() -> None:
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        running = False
+                        if state.mode in {"staff", "staff_queued"}:
+                            state, _ = step(state, Key("Escape"), now=now)
+                        else:
+                            running = False
+                    elif waiting_pin:
+                        if event.unicode.isdigit():
+                            pin.append(event.unicode)
+                            if len(pin) >= 4:
+                                waiting_pin = False
+                                if "".join(pin) == settings.staff_pin:
+                                    state, _ = step(state, StaffUnlock(), now=now)
+                                pin = []
+                    elif (
+                        event.key == pygame.K_p
+                        and event.mod & mods_staff == mods_staff
+                    ):
+                        waiting_pin = True
+                        pin = []
+                    elif event.key in fkeys:
+                        state, effect = step(state, Key(fkeys[event.key]), now=now)
+                        state = _apply(state, effect, api)
                     elif event.key == pygame.K_RETURN:
                         codes = assemble(keys + [("KEY_ENTER", 1)])
                         keys = []
