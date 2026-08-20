@@ -33,3 +33,8 @@ def test_incomplete_without_enter_is_empty():
 def test_key_up_does_not_duplicate():
     events = [("KEY_1", 1), ("KEY_1", 0), ("KEY_2", 1), ("KEY_2", 0), ("KEY_ENTER", 1)]
     assert assemble(events) == ["12"]
+
+
+def test_keypad_enter():
+    events = [("KEY_KP5", 1), ("KEY_KP9", 1), ("KEY_KPENTER", 1)]
+    assert assemble(events) == ["59"]

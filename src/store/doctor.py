@@ -26,8 +26,11 @@ def run() -> None:
         print(f"journal  {mode}")
     engine.dispose()
     if _BY_ID.is_dir():
-        names = sorted(p.name for p in _BY_ID.iterdir())
-        print("by-id    " + (" ".join(names) if names else "(empty)"))
+        try:
+            names = sorted(p.name for p in _BY_ID.iterdir())
+            print("by-id    " + (" ".join(names) if names else "(empty)"))
+        except OSError:
+            print("by-id    (unreadable)")
     else:
         print("by-id    (none — fill config/devices.example.toml on the LIFEBOOK)")
     print("phase    2 (console scan + A4 labels; grab() needs Linux + gun)")

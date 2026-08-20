@@ -11,8 +11,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen.canvas import Canvas
 from sqlalchemy.orm import Session
 
-from store.domain.errors import UnknownProduct
-from store.persist import repo
+from store.domain.errors import InvalidBarcode
 from store.services import catalog
 
 COLS = 3
@@ -20,21 +19,34 @@ ROWS = 8
 PAGE = COLS * ROWS
 
 
-def print_sheet(session: Session, path: Path | str, count: int = PAGE) -> list[str]:
-    rows = catalog.mint_store_drafts(session, count)
+def print_sheet(
+    session: Session,
+    path: Path | str,
+    count: int = PAGE,
+    *,
+    prefix_min: int = 200,
+    prefix_max: int = 299,
+) -> list[str]:
+    if count < 1 or count > PAGE:
+        raise InvalidBarcode("count")
+    rows = catalog.mint_store_drafts(
+        session, count, prefix_min=prefix_min, prefix_max=prefix_max
+    )
     codes = [row.barcode for row in rows]
     render_sheet(path, codes)
     return codes
 
 
-def reprint(session: Session, path: Path | str, barcodes: list[str]) -> None:
+def resolve_codes(session: Session, barcodes: list[str]) -> list[str]:
     codes: list[str] = []
     for raw in barcodes:
-        product = repo.get_product_by_barcode(session, raw)
-        if product is None:
-            raise UnknownProduct(raw)
+        product = catalog.lookup(session, raw)
         codes.append(product.barcode)
-    render_sheet(path, codes)
+    return codes
+
+
+def reprint(session: Session, path: Path | str, barcodes: list[str]) -> None:
+    render_sheet(path, resolve_codes(session, barcodes))
 
 
 def render_sheet(path: Path | str, barcodes: list[str]) -> None:
