@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}今日{% endblock %}
+{% block heading %}今日{% endblock %}
+{% block body %}
+<form method="post" action="/void-last">
+  <button class="dim" type="submit">作廢上一單</button>
+</form>
+{% if not sales %}
+  <p>今日未賣。</p>
+{% endif %}
+<table>
+  <tr><th>#</th><th>名</th><th>元</th><th></th></tr>
+  {% for sale in sales %}
+  <tr>
+    <td>{{ sale.id }}</td>
+    <td>{{ sale.card.child_name }}</td>
+    <td>{{ sale.total_cents // 100 }}</td>
+    <td class="muted">{% if sale.voided_at %}作廢{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

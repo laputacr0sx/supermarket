@@ -90,6 +90,25 @@ def list_drafts(session: Session) -> list[Product]:
     return repo.list_drafts(session)
 
 
+def list_ready(session: Session) -> list[Product]:
+    return repo.list_ready(session)
+
+
+def drop_draft(session: Session, barcode: str) -> None:
+    product = lookup(session, barcode)
+    if product.status != "draft":
+        raise ProductNotSellable(product.barcode)
+    session.delete(product)
+    session.flush()
+
+
+def deactivate(session: Session, barcode: str) -> Product:
+    product = lookup(session, barcode)
+    product.active = 0
+    session.flush()
+    return product
+
+
 def mint_store_drafts(
     session: Session,
     count: int,

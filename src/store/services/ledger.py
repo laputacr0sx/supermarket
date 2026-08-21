@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from store.domain.errors import InactiveCard, InvalidLedger, NothingToVoid, UnknownCard
 from store.persist import repo
-from store.persist.tables import Account, Card, Ledger
+from store.persist.tables import Account, Card, Ledger, Sale
 
 
 @dataclass(frozen=True)
@@ -20,6 +20,10 @@ class LedgerResult:
 
 def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def list_today(session: Session) -> list[Sale]:
+    return repo.list_sales_on(session, datetime.now(UTC).date().isoformat())
 
 
 def _live_account(session: Session, uid: str) -> tuple[Card, Account]:

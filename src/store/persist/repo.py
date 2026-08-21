@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from store.persist.tables import Account, Card, Product, Sale
 
@@ -31,4 +31,28 @@ def all_barcodes(session: Session) -> set[str]:
 
 def list_drafts(session: Session) -> list[Product]:
     stmt = select(Product).where(Product.status == "draft").order_by(Product.id)
+    return list(session.scalars(stmt))
+
+
+def list_ready(session: Session) -> list[Product]:
+    stmt = (
+        select(Product)
+        .where(Product.status == "ready")
+        .order_by(Product.name, Product.id)
+    )
+    return list(session.scalars(stmt))
+
+
+def list_cards(session: Session) -> list[Card]:
+    stmt = select(Card).options(selectinload(Card.account)).order_by(Card.id)
+    return list(session.scalars(stmt))
+
+
+def list_sales_on(session: Session, day: str) -> list[Sale]:
+    stmt = (
+        select(Sale)
+        .options(selectinload(Sale.card))
+        .where(Sale.created_at.startswith(day))
+        .order_by(Sale.id.desc())
+    )
     return list(session.scalars(stmt))

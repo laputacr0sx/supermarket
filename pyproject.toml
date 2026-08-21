@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "store"
 version = "0.1.0"
-description = "Play supermarket till — Phase 6 phone admin"
+description = "Play supermarket till — Phase 6 phone play day"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115",

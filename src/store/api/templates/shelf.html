@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}貨架{% endblock %}
+{% block heading %}貨架{% endblock %}
+{% block body %}
+{% if not products %}
+  <p>沒有上架貨。</p>
+{% endif %}
+{% for p in products %}
+  <div class="card">
+    <strong>{{ p.name }}</strong>
+    <p class="muted"><code>{{ p.barcode }}</code> · {{ (p.price_cents or 0) // 100 }}元
+      {% if not p.active %}· 停用{% endif %}
+    </p>
+    {% if p.active %}
+    <form method="post" action="/products/{{ p.barcode }}/deactivate">
+      <button class="dim" type="submit">停用</button>
+    </form>
+    {% endif %}
+  </div>
+{% endfor %}
+{% endblock %}
