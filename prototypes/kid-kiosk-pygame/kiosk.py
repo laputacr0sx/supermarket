@@ -18,6 +18,9 @@ import pygame
 import pygame.freetype
 
 from shop import Shop, ViewModel
+from store.kiosk.copy import COPY
+from store.kiosk.fonts import find_cjk_font
+from store.kiosk.typeface import Typeface
 
 W, H = 1366, 768
 HEADER_H = 88
@@ -40,42 +43,7 @@ ROOM = (22, 18, 14)
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE.parent / "kid-kiosk" / "assets"
 
-FONT_CANDIDATES = [
-    Path(r"C:\Windows\Fonts\msjhbd.ttc"),
-    Path(r"C:\Windows\Fonts\msjh.ttc"),
-    Path(r"C:\Windows\Fonts\mingliu.ttc"),
-    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"),
-    Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"),
-    Path("/System/Library/Fonts/PingFang.ttc"),
-]
-
 BAR_WIDTHS = [4, 8, 4, 12, 6, 4, 10, 6, 4, 14, 4, 8, 4, 10, 6, 4, 12, 4, 8, 6]
-
-
-def find_cjk_font() -> str | None:
-    for path in FONT_CANDIDATES:
-        if path.is_file():
-            return str(path)
-    return None
-
-
-class Fonts:
-    def __init__(self, path: str | None) -> None:
-        pygame.freetype.init()
-        self.path = path
-        self._cache: dict[int, pygame.freetype.Font] = {}
-
-    def get(self, size: int) -> pygame.freetype.Font:
-        if size not in self._cache:
-            font = pygame.freetype.Font(self.path, size)
-            font.pad = True
-            font.strong = True
-            self._cache[size] = font
-        return self._cache[size]
-
-    def render(self, text: str, size: int, color: tuple[int, int, int]) -> pygame.Surface:
-        surf, _ = self.get(size).render(text, color)
-        return surf
 
 
 def round_rect(surf: pygame.Surface, rect: pygame.Rect, color, radius: int) -> None:
@@ -125,10 +93,10 @@ def draw_barcode(dst: pygame.Surface, cx: int, cy: int) -> None:
 
 
 def draw_yuan(
-    fonts: Fonts, n: int, num_size: int, color: tuple[int, int, int]
+    fonts: Typeface, n: int, num_size: int, color: tuple[int, int, int]
 ) -> pygame.Surface:
     num = fonts.render(str(n), num_size, color)
-    unit = fonts.render("元", max(18, int(num_size * 0.42)), color)
+    unit = fonts.render(COPY.yuan, max(18, int(num_size * 0.42)), color)
     pad = max(4, num_size // 20)
     w = num.get_width() + pad + unit.get_width()
     h = max(num.get_height(), unit.get_height())
@@ -147,13 +115,13 @@ class Kiosk:
             flags |= pygame.FULLSCREEN
         self.fullscreen = fullscreen
         self.screen = pygame.display.set_mode((W, H + HINT_H), flags)
-        pygame.display.set_caption("士多")
+        pygame.display.set_caption(COPY.store)
         pygame.mouse.set_visible(False)
         pygame.event.set_blocked(
             (pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEWHEEL)
         )
         self.clock = pygame.time.Clock()
-        self.fonts = Fonts(find_cjk_font())
+        self.fonts = Typeface()
         self.photos = load_photos()
         self.shop = Shop()
         self.running = True
@@ -231,7 +199,7 @@ class Kiosk:
         if vm.picture == "barcode":
             draw_barcode(dest, pic_rect.centerx, pic_rect.centery)
         elif vm.picture == "idle":
-            cart = self.fonts.render("掃", 72, MUTE)
+            cart = self.fonts.render(COPY.idle_glyph, 72, MUTE)
             blit_center(dest, cart, pic_rect.centerx, pic_rect.centery)
         else:
             key = "card" if vm.picture == "card" else vm.picture
@@ -282,7 +250,7 @@ class Kiosk:
         bar = pygame.Rect(0, H, W, HINT_H)
         pygame.draw.rect(dest, ROOM, bar)
         text = self.fonts.render(
-            "1 麥片   2 牛奶   3 番茄   4 牙膏   5 貼紙   6 亂碼    A 樂樂   S 森   C 清   7 上架蘋果   F 全螢幕",
+            "1 麥片   2 牛奶   3 蕃茄   4 牙膏   5 貼紙   6 亂碼    A 樂樂   S 森   C 清   7 上架蘋果   F 全螢幕",
             18,
             (203, 187, 166),
         )
@@ -316,7 +284,7 @@ def write_shots(out_dir: Path) -> None:
         screen = pygame.display.set_mode((W, H), flags)
     except pygame.error:
         screen = pygame.display.set_mode((W, H))
-    fonts = Fonts(find_cjk_font())
+    fonts = Typeface()
     photos = load_photos()
     kiosk = Kiosk.__new__(Kiosk)
     kiosk.fonts = fonts
@@ -381,7 +349,7 @@ def write_shots(out_dir: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="士多 pygame till")
+    parser = argparse.ArgumentParser(description=f"{COPY.store} pygame till")
     parser.add_argument("--fullscreen", action="store_true")
     parser.add_argument("--shots", action="store_true", help="render PNG frames and exit")
     args = parser.parse_args()

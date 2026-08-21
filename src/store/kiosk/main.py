@@ -5,12 +5,13 @@ from __future__ import annotations
 import argparse
 import time
 from dataclasses import replace
-from typing import Any
 
 from store.config import get_settings
 from store.io.scanner import assemble
 from store.kiosk.client import Api
-from store.kiosk.draw import H, W, find_cjk_font, paint
+from store.kiosk.copy import COPY
+from store.kiosk.draw import H, W, paint
+from store.kiosk.typeface import Typeface
 from store.kiosk.keys import is_staff_chord
 from store.kiosk.fsm import (
     Barcode,
@@ -57,21 +58,9 @@ def run() -> None:
     pygame.freetype.init()
     flags = pygame.SCALED | (pygame.FULLSCREEN if args.fullscreen else 0)
     screen = pygame.display.set_mode((W, H), flags)
-    pygame.display.set_caption("士多")
+    pygame.display.set_caption(COPY.store)
     pygame.mouse.set_visible(False)
-    font_path = find_cjk_font()
-    cache: dict[int, Any] = {}
-
-    def fonts_render(text: str, size: int, color: tuple[int, int, int]) -> object:
-        if size not in cache:
-            font = pygame.freetype.Font(font_path, size)
-            font.pad = True
-            cache[size] = font
-        surf, _ = cache[size].render(text, color)
-        return surf
-
-    class Fonts:
-        render = staticmethod(fonts_render)
+    fonts = Typeface()
 
     settings = get_settings()
     api = Api(f"http://{settings.pos_host}:{settings.pos_port}")
@@ -139,13 +128,13 @@ def run() -> None:
             if waiting_pin:
                 vm = replace(
                     vm,
-                    header="STAFF",
+                    header=COPY.staff_header,
                     pill="PIN",
                     title="PIN",
                     sub="·" * len(pin),
                     flash="soft",
                 )
-            paint(pygame, Fonts, screen, vm)
+            paint(pygame, fonts, screen, vm)
             pygame.display.flip()
             clock.tick(30)
     finally:

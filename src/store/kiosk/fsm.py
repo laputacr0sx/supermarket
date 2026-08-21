@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from typing import TypedDict
 
 from store.domain.money import cents_to_yuan
+from store.kiosk.copy import COPY
 
 RESULT_S = 3.0
 FLASH_S = 2.0
@@ -265,67 +266,120 @@ def _on_pay(state: KioskState, event: PayReply, now: float) -> tuple[KioskState,
 def view(state: KioskState) -> ViewModel:
     n = _count(state.cart)
     total = _total(state.cart)
-    count = f"{n}件" if n else ""
+    count = COPY.cart_count(n)
     if state.result == "paid":
         return ViewModel(
-            "士多", "掃 · 拍", "ok", "card",
+            COPY.store,
+            COPY.pill,
+            "ok",
+            "card",
             cents_to_yuan(state.overlay.get("total") or 0),
-            "得",
-            f"{state.overlay.get('name') or ''} 剩",
+            COPY.paid,
+            COPY.leftover_of(str(state.overlay.get("name") or "")),
             "",
-            "剩",
+            COPY.remain,
             cents_to_yuan(state.overlay.get("balance") or 0),
             "gold",
         )
     if state.result == "need":
         return ViewModel(
-            "士多", "掃 · 拍", "nope", "card", None, "唔夠",
+            COPY.store,
+            COPY.pill,
+            "nope",
+            "card",
+            None,
+            COPY.need,
             str(state.overlay.get("name") or ""),
-            count, "差",
+            count,
+            COPY.short,
             cents_to_yuan(state.overlay.get("need") or 0),
             "need",
         )
     if state.result == "learned":
         return ViewModel(
-            "士多", "掃 · 拍", "soft", "barcode", None, "記低",
-            f"叫大人 ·{state.overlay.get('code4') or ''}",
-            count or "未賣",
-            "共" if n else "",
+            COPY.store,
+            COPY.pill,
+            "soft",
+            "barcode",
+            None,
+            COPY.learned,
+            COPY.call_adult_for(str(state.overlay.get("code4") or "")),
+            COPY.cart_count(n, empty=COPY.empty_cart),
+            COPY.total if n else "",
             cents_to_yuan(total) if n else None,
             "hot" if n else "dim",
         )
     if state.result == "pending":
         return ViewModel(
-            "士多", "掃 · 拍", "soft", "barcode", None, "問大人",
-            f"·{state.overlay.get('code4') or ''}",
-            count, "共" if n else "",
+            COPY.store,
+            COPY.pill,
+            "soft",
+            "barcode",
+            None,
+            COPY.ask_adult,
+            COPY.ask_code(str(state.overlay.get("code4") or "")),
+            count,
+            COPY.total if n else "",
             cents_to_yuan(total) if n else None,
             "hot" if n else "dim",
         )
     if state.result == "balance":
         yuan = cents_to_yuan(state.overlay.get("balance") or 0)
         return ViewModel(
-            "士多", "掃 · 拍", "ok", "card", yuan,
-            str(state.overlay.get("name") or ""), "餘",
-            "", "餘", yuan, "gold",
+            COPY.store,
+            COPY.pill,
+            "ok",
+            "card",
+            yuan,
+            str(state.overlay.get("name") or ""),
+            COPY.still_have,
+            "",
+            COPY.still_have,
+            yuan,
+            "gold",
         )
     if state.result == "unknown":
         return ViewModel(
-            "士多", "掃 · 拍", "nope", "barcode", None, "唔識", "",
-            count, "共" if n else "",
+            COPY.store,
+            COPY.pill,
+            "nope",
+            "barcode",
+            None,
+            COPY.unknown,
+            "",
+            count,
+            COPY.total if n else "",
             cents_to_yuan(total) if n else None,
             "hot" if n else "",
         )
     if state.last and state.cart:
         qty = next((ln.qty for ln in state.cart if ln.barcode == state.last.barcode), 1)
         return ViewModel(
-            "士多", "掃 · 拍", None, "idle",
+            COPY.store,
+            COPY.pill,
+            None,
+            "idle",
             cents_to_yuan(state.last.price_cents),
             state.last.name,
-            f"×{qty}" if qty > 1 else "",
-            count, "共", cents_to_yuan(total), "hot",
+            COPY.qty_mark(qty),
+            count,
+            COPY.total,
+            cents_to_yuan(total),
+            "hot",
         )
-    vm = ViewModel("士多", "掃 · 拍", None, "idle", None, "掃嘢", "拍卡", "", "共", 0, "dim")
+    vm = ViewModel(
+        COPY.store,
+        COPY.pill,
+        None,
+        "idle",
+        None,
+        COPY.idle_title,
+        COPY.idle_sub,
+        "",
+        COPY.total,
+        0,
+        "dim",
+    )
     if state.mode in {"staff", "staff_queued"}:
-        return replace(vm, header="STAFF", pill="F5–F10")
+        return replace(vm, header=COPY.staff_header, pill=COPY.staff_pill)
     return vm

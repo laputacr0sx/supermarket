@@ -80,7 +80,7 @@ def seeded(session: Session) -> Session:
                 barcode=TOMATO,
                 origin="store",
                 status="ready",
-                name="番茄",
+                name="蕃茄",
                 price_cents=yuan_to_cents(3),
                 active=1,
                 created_at=now,
