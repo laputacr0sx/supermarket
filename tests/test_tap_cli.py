@@ -18,19 +18,19 @@ def _client() -> TestClient:
     return TestClient(create_app(Settings(database=":memory:", docs=True), engine=engine))
 
 
-def test_format_balance_shows_name_and_yuan():
+def test_format_balance_shows_name_and_yuan() -> None:
     line = format_balance({"name": "樂樂", "balance_cents": 3000, "role": "child"})
     assert "樂樂" in line
     assert "30元" in line
 
 
-def test_empty_tap_prints_balance():
+def test_empty_tap_prints_balance() -> None:
     with _client() as client:
         line = tap_balance(client, "DEADBEEF")
     assert "樂樂" in line
 
 
-def test_pay_then_402_then_unknown_card():
+def test_pay_then_402_then_unknown_card() -> None:
     with _client() as client:
         paid = tap_pay(client, "DEADBEEF", [CEREAL])
         assert paid.startswith("paid")
@@ -42,7 +42,7 @@ def test_pay_then_402_then_unknown_card():
         assert bad_sku == "not found"
 
 
-def test_402_then_topup_then_pay():
+def test_402_then_topup_then_pay() -> None:
     with _client() as client:
         need = tap_pay(client, "CAFEBABE", [CEREAL])
         assert need.startswith("need")

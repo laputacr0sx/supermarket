@@ -11,7 +11,7 @@ from tests.conftest import CEREAL, DRAFT, MILK, UNKNOWN_OK
 TOMATO_SAFE = "200184739201" + ean13_check("200184739201")
 
 
-def _client():
+def _client() -> TestClient:
     engine = make_engine(":memory:")
     create_schema(engine)
     factory = make_session_factory(engine)
@@ -37,7 +37,7 @@ def _client():
     return TestClient(app)
 
 
-def test_scan_ready_then_unknown_then_garbage():
+def test_scan_ready_then_unknown_then_garbage() -> None:
     with _client() as client:
         ready = client.post("/pos/scan", json={"barcode": CEREAL})
         assert ready.status_code == 200
@@ -56,13 +56,13 @@ def test_scan_ready_then_unknown_then_garbage():
         assert bad.status_code == 422
 
 
-def test_get_product_does_not_learn():
+def test_get_product_does_not_learn() -> None:
     with _client() as client:
         missing = client.get(f"/pos/products/{UNKNOWN_OK}")
         assert missing.status_code == 404
 
 
-def test_checkout_and_402_and_draft():
+def test_checkout_and_402_and_draft() -> None:
     with _client() as client:
         draft = client.post(
             "/pos/checkout",
@@ -91,7 +91,7 @@ def test_checkout_and_402_and_draft():
         assert poor.json()["detail"]["need_cents"] == yuan_to_cents(15)
 
 
-def test_idempotency_key_replays():
+def test_idempotency_key_replays() -> None:
     with _client() as client:
         headers = {"Idempotency-Key": "play-1"}
         first = client.post(
@@ -109,7 +109,7 @@ def test_idempotency_key_replays():
         assert first.json()["sale_id"] == second.json()["sale_id"]
 
 
-def test_card_and_topup():
+def test_card_and_topup() -> None:
     with _client() as client:
         card = client.get("/pos/cards/DEADBEEF")
         assert card.status_code == 200

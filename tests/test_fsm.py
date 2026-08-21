@@ -19,7 +19,7 @@ def _sell(name: str, barcode: str, cents: int) -> ScanReply:
     )
 
 
-def test_sell_scan_enters_cart_and_keeps_total():
+def test_sell_scan_enters_cart_and_keeps_total() -> None:
     state, effect = step(idle(), Barcode("1"), now=0)
     assert effect.kind == "scan"
     state, _ = step(state, _sell("麥片", "1", 1200), now=1)
@@ -30,7 +30,7 @@ def test_sell_scan_enters_cart_and_keeps_total():
     assert vm.sum_label == "共"
 
 
-def test_learn_does_not_clear_cart():
+def test_learn_does_not_clear_cart() -> None:
     state, _ = step(idle(), Barcode("1"), now=0)
     state, _ = step(state, _sell("麥片", "1", 1200), now=1)
     state, _ = step(state, Barcode("2"), now=2)
@@ -41,12 +41,12 @@ def test_learn_does_not_clear_cart():
     assert view(state).title == "麥片"
 
 
-def test_empty_tap_asks_for_card():
+def test_empty_tap_asks_for_card() -> None:
     state, effect = step(idle(), Uid("DEADBEEF"), now=0)
     assert effect.kind == "card"
 
 
-def test_cart_tap_checks_out():
+def test_cart_tap_checks_out() -> None:
     state, _ = step(idle(), Barcode("1"), now=0)
     state, _ = step(state, _sell("麥片", "1", 1200), now=1)
     state, effect = step(state, Uid("DEADBEEF"), now=2)
@@ -61,7 +61,7 @@ def test_cart_tap_checks_out():
     assert state.cart == ()
 
 
-def test_402_keeps_cart():
+def test_402_keeps_cart() -> None:
     state, _ = step(idle(), Barcode("1"), now=0)
     state, _ = step(state, _sell("麥片", "1", 1200), now=1)
     state, _ = step(state, PayReply("need", need_cents=700, name="森"), now=2)
@@ -72,7 +72,7 @@ def test_402_keeps_cart():
     assert vm.sum_yuan == 7
 
 
-def test_reject_keeps_cart():
+def test_reject_keeps_cart() -> None:
     state, _ = step(idle(), Barcode("1"), now=0)
     state, _ = step(state, _sell("麥片", "1", 1200), now=1)
     state, _ = step(state, ScanReply("reject", None), now=2)
@@ -80,13 +80,13 @@ def test_reject_keeps_cart():
     assert view(state).title == "唔識"
 
 
-def test_f6_ignored_in_idle():
+def test_f6_ignored_in_idle() -> None:
     state, effect = step(idle(), Key("F6"), now=0)
     assert effect.kind == "none"
     assert state.mode == "idle"
 
 
-def test_staff_f6_then_child_tap_emits_ledger():
+def test_staff_f6_then_child_tap_emits_ledger() -> None:
     state, _ = step(idle(), StaffUnlock(), now=0)
     assert view(state).header == "STAFF"
     state, _ = step(state, Key("F6"), now=1)
@@ -97,14 +97,14 @@ def test_staff_f6_then_child_tap_emits_ledger():
     assert effect.uid == "DEADBEEF"
 
 
-def test_esc_leaves_staff():
+def test_esc_leaves_staff() -> None:
     state, _ = step(idle(), StaffUnlock(), now=0)
     state, _ = step(state, Key("Escape"), now=1)
     assert state.mode == "idle"
     assert view(state).header == "士多"
 
 
-def test_f8_needs_second_press():
+def test_f8_needs_second_press() -> None:
     state, _ = step(idle(), StaffUnlock(), now=0)
     state, effect = step(state, Key("F8"), now=1)
     assert effect.kind == "none"

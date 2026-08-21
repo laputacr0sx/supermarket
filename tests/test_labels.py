@@ -1,11 +1,14 @@
+from pathlib import Path
+
 import pytest
+from sqlalchemy.orm import Session
 
 from store.domain.errors import InvalidBarcode, UnknownProduct
 from store.persist import repo
 from store.services import labels
 
 
-def test_print_sheet_mints_drafts_and_embeds_codes(seeded, tmp_path):
+def test_print_sheet_mints_drafts_and_embeds_codes(seeded: Session, tmp_path: Path) -> None:
     path = tmp_path / "sheet.pdf"
     codes = labels.print_sheet(seeded, path, count=3)
     assert len(codes) == 3
@@ -20,7 +23,7 @@ def test_print_sheet_mints_drafts_and_embeds_codes(seeded, tmp_path):
         assert code.encode("ascii") in data
 
 
-def test_reprint_does_not_mint(seeded, tmp_path):
+def test_reprint_does_not_mint(seeded: Session, tmp_path: Path) -> None:
     first = tmp_path / "a.pdf"
     codes = labels.print_sheet(seeded, first, count=2)
     before = repo.all_barcodes(seeded)
@@ -31,19 +34,19 @@ def test_reprint_does_not_mint(seeded, tmp_path):
         assert code.encode("ascii") in data
 
 
-def test_reprint_rejects_unknown(seeded, tmp_path):
+def test_reprint_rejects_unknown(seeded: Session, tmp_path: Path) -> None:
     with pytest.raises(UnknownProduct):
         labels.reprint(seeded, tmp_path / "x.pdf", ["0000000000000"])
 
 
-def test_reprint_normalizes_spaces(seeded, tmp_path):
+def test_reprint_normalizes_spaces(seeded: Session, tmp_path: Path) -> None:
     codes = labels.print_sheet(seeded, tmp_path / "a.pdf", count=1)
     spaced = f" {codes[0][:6]} {codes[0][6:]} "
     labels.reprint(seeded, tmp_path / "b.pdf", [spaced])
     assert codes[0].encode("ascii") in (tmp_path / "b.pdf").read_bytes()
 
 
-def test_print_sheet_rejects_bad_count(seeded, tmp_path):
+def test_print_sheet_rejects_bad_count(seeded: Session, tmp_path: Path) -> None:
     with pytest.raises(InvalidBarcode):
         labels.print_sheet(seeded, tmp_path / "x.pdf", count=0)
     with pytest.raises(InvalidBarcode):

@@ -1,11 +1,12 @@
 import pytest
+from sqlalchemy.orm import Session
 
 from store.domain.errors import ProductNotSellable
 from store.services import catalog
 from tests.conftest import CEREAL, DRAFT, UNKNOWN_OK
 
 
-def test_valid_unknown_becomes_one_draft(seeded):
+def test_valid_unknown_becomes_one_draft(seeded: Session) -> None:
     first = catalog.scan(seeded, UNKNOWN_OK)
     assert first.action == "learned"
     assert first.product is not None
@@ -13,10 +14,11 @@ def test_valid_unknown_becomes_one_draft(seeded):
     assert first.product.origin == "household"
     second = catalog.scan(seeded, UNKNOWN_OK)
     assert second.action == "pending"
+    assert second.product is not None
     assert second.product.id == first.product.id
 
 
-def test_invalid_inserts_nothing(seeded):
+def test_invalid_inserts_nothing(seeded: Session) -> None:
     before = catalog.scan(seeded, "not-a-code")
     assert before.action == "reject"
     assert before.product is None
@@ -24,7 +26,7 @@ def test_invalid_inserts_nothing(seeded):
     assert again.action == "reject"
 
 
-def test_finish_without_name_stays_unready(seeded):
+def test_finish_without_name_stays_unready(seeded: Session) -> None:
     product = catalog.lookup(seeded, DRAFT)
     assert product.status == "draft"
     with pytest.raises(ProductNotSellable):
@@ -33,18 +35,19 @@ def test_finish_without_name_stays_unready(seeded):
     assert product.status == "draft"
 
 
-def test_ready_scan_is_sell(seeded):
+def test_ready_scan_is_sell(seeded: Session) -> None:
     result = catalog.scan(seeded, CEREAL)
     assert result.action == "sell"
+    assert result.product is not None
     assert result.product.name == "麥片"
 
 
-def test_learn_off_rejects_unknown(seeded):
+def test_learn_off_rejects_unknown(seeded: Session) -> None:
     result = catalog.scan(seeded, UNKNOWN_OK, learn=False)
     assert result.action == "reject"
 
 
-def test_mint_store_drafts_are_random_valid(seeded):
+def test_mint_store_drafts_are_random_valid(seeded: Session) -> None:
     rows = catalog.mint_store_drafts(seeded, 5)
     codes = [r.barcode for r in rows]
     assert len(set(codes)) == 5
