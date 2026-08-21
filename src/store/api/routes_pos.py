@@ -108,7 +108,7 @@ def pos_checkout(
     debounce = float(request.app.state.settings.uid_debounce_s)
     last = cache.get(("uid", uid))
     if last and now - last[0] < debounce:
-        raise HTTPException(status_code=409, detail="duplicate checkout")
+        _raise(DuplicateCheckout())
     try:
         result = checkout.checkout(
             session,

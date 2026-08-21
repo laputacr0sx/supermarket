@@ -122,6 +122,21 @@ def test_card_and_topup() -> None:
         assert top.json()["balance_cents"] == yuan_to_cents(15)
 
 
+def test_uid_debounce_is_409() -> None:
+    with _client() as client:
+        first = client.post(
+            "/pos/checkout",
+            json={"uid": "DEADBEEF", "items": [{"barcode": CEREAL, "qty": 1}]},
+        )
+        second = client.post(
+            "/pos/checkout",
+            json={"uid": "DEADBEEF", "items": [{"barcode": MILK, "qty": 1}]},
+        )
+        assert first.status_code == 200
+        assert second.status_code == 409
+        assert second.json()["detail"] == "duplicate checkout"
+
+
 def test_pos_body_validation() -> None:
     with _client() as client:
         empty_cart = client.post("/pos/checkout", json={"uid": "DEADBEEF", "items": []})

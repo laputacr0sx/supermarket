@@ -8,7 +8,9 @@ from collections.abc import Mapping
 from typing import Protocol
 
 import httpx2
+from pydantic import ValidationError
 
+from store.api.schemas import CardOut, CheckoutOut, LedgerOut
 from store.config import get_settings
 from store.domain.money import format_yuan, yuan_to_cents
 from store.domain.uid import normalize_uid
@@ -51,10 +53,11 @@ def tap_balance(client: TapClient, uid: str) -> str:
         return "unknown card"
     if response.status_code != 200:
         return "error"
-    body = response.json()
-    if not isinstance(body, dict):
+    try:
+        card = CardOut.model_validate(response.json())
+    except ValidationError:
         return "error"
-    return format_balance(body)
+    return format_balance(card.model_dump())
 
 
 def tap_pay(client: TapClient, uid: str, barcodes: list[str]) -> str:
@@ -62,10 +65,11 @@ def tap_pay(client: TapClient, uid: str, barcodes: list[str]) -> str:
     items = [{"barcode": code, "qty": 1} for code in barcodes]
     response = client.post("/pos/checkout", json={"uid": uid, "items": items})
     if response.status_code == 200:
-        body = response.json()
-        if not isinstance(body, dict):
+        try:
+            paid = CheckoutOut.model_validate(response.json())
+        except ValidationError:
             return "error"
-        return format_checkout(body)
+        return format_checkout(paid.model_dump())
     if response.status_code == 402:
         payload = response.json()
         detail = payload.get("detail") if isinstance(payload, dict) else None
@@ -88,11 +92,11 @@ def tap_topup(client: TapClient, uid: str, amount_cents: int) -> str:
         return "unknown card"
     if response.status_code != 200:
         return "error"
-    body = response.json()
-    if not isinstance(body, dict):
+    try:
+        led = LedgerOut.model_validate(response.json())
+    except ValidationError:
         return "error"
-    left = body.get("balance_cents")
-    extra = f" {format_yuan(left)}" if isinstance(left, int) else ""
+    extra = f" {format_yuan(led.balance_cents)}"
     return f"topup{extra}"
 
 

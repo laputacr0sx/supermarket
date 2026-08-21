@@ -49,4 +49,5 @@ class NothingToVoid(StoreError):
 
 
 class DuplicateCheckout(StoreError):
-    pass
+    def __init__(self) -> None:
+        super().__init__("duplicate checkout")
