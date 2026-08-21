@@ -27,7 +27,7 @@ def seed_session(session: Session) -> None:
     products = [
         ("麥片", _ean13("489000000001"), 12, "household"),
         ("牛奶", _ean13("489000000002"), 8, "household"),
-        ("番茄", _ean13("200184739201"), 3, "store"),
+        ("蕃茄", _ean13("200184739201"), 3, "store"),
     ]
     for name, code, yuan, origin in products:
         existing = session.scalar(select(Product).where(Product.barcode == code))

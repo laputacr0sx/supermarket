@@ -6,8 +6,16 @@ project this ViewModel. Production `src/store/ui` paints the same object.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
+import sys
+from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Literal
+
+_SRC = Path(__file__).resolve().parents[2] / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from store.kiosk.copy import COPY  # noqa: E402
 
 Flash = Literal["ok", "nope", "soft"] | None
 Picture = Literal["idle", "card", "barcode"] | str
@@ -71,7 +79,7 @@ def seed_catalog() -> dict[str, Sku]:
     return {
         "cereal": Sku("cereal", "麥片", 12, "ready", "household", "cereal", "5412345123451"),
         "milk": Sku("milk", "牛奶", 8, "ready", "household", "milk", "4006381333931"),
-        "tomato": Sku("tomato", "番茄", 3, "ready", "store", "tomato", "2847193058264"),
+        "tomato": Sku("tomato", "蕃茄", 3, "ready", "store", "tomato", "2847193058264"),
         "toothpaste": Sku(
             "toothpaste", None, None, "unknown", "household", None, "5901234123457", True
         ),
@@ -195,50 +203,50 @@ class Shop:
             r = self.result
             if r.kind == "paid":
                 return ViewModel(
-                    "士多", "掃 · 拍", "ok", "card", r.total, "得", f"{r.name} 剩",
-                    "", "剩", r.balance, "gold",
+                    COPY.store, COPY.pill, "ok", "card", r.total, COPY.paid,
+                    COPY.leftover_of(r.name), "", COPY.remain, r.balance, "gold",
                 )
             if r.kind == "need":
                 return ViewModel(
-                    "士多", "掃 · 拍", "nope", "card", None, "唔夠", r.name,
-                    f"{n}件" if n else "", "差", r.need, "need",
+                    COPY.store, COPY.pill, "nope", "card", None, COPY.need, r.name,
+                    COPY.cart_count(n), COPY.short, r.need, "need",
                 )
             if r.kind == "learned":
                 return ViewModel(
-                    "士多", "掃 · 拍", "soft", "barcode", None, "記低",
-                    f"叫大人 ·{r.code4}",
-                    f"{n}件" if n else "未賣",
-                    "共" if n else "", total if n else None, "hot" if n else "dim",
+                    COPY.store, COPY.pill, "soft", "barcode", None, COPY.learned,
+                    COPY.call_adult_for(r.code4),
+                    COPY.cart_count(n, empty=COPY.empty_cart),
+                    COPY.total if n else "", total if n else None, "hot" if n else "dim",
                 )
             if r.kind == "pending":
                 return ViewModel(
-                    "士多", "掃 · 拍", "soft", "barcode", None, "問大人",
-                    f"·{r.code4}",
-                    f"{n}件" if n else "",
-                    "共" if n else "", total if n else None, "hot" if n else "dim",
+                    COPY.store, COPY.pill, "soft", "barcode", None, COPY.ask_adult,
+                    COPY.ask_code(r.code4),
+                    COPY.cart_count(n),
+                    COPY.total if n else "", total if n else None, "hot" if n else "dim",
                 )
             if r.kind == "unknown":
                 return ViewModel(
-                    "士多", "掃 · 拍", "nope", "barcode", None, "唔識", "",
-                    f"{n}件" if n else "",
-                    "共" if n else "", total if n else None, "hot" if n else "",
+                    COPY.store, COPY.pill, "nope", "barcode", None, COPY.unknown, "",
+                    COPY.cart_count(n),
+                    COPY.total if n else "", total if n else None, "hot" if n else "",
                 )
             return ViewModel(
-                "士多", "掃 · 拍", "ok", "card", r.balance, r.name, "餘",
-                "", "餘", r.balance, "gold",
+                COPY.store, COPY.pill, "ok", "card", r.balance, r.name, COPY.still_have,
+                "", COPY.still_have, r.balance, "gold",
             )
 
         last = self.catalog.get(self.last_id) if self.last_id else None
         if last and last.status == "ready" and self.cart:
             qty = next((ln.qty for ln in self.cart if ln.sku_id == last.id), 1)
             return ViewModel(
-                "士多", "掃 · 拍", None,
+                COPY.store, COPY.pill, None,
                 last.image or "idle",
                 last.price, last.name or "",
-                f"×{qty}" if qty > 1 else "",
-                f"{n}件", "共", total, "hot",
+                COPY.qty_mark(qty),
+                COPY.cart_count(n), COPY.total, total, "hot",
             )
         return ViewModel(
-            "士多", "掃 · 拍", None, "idle", None, "掃嘢", "拍卡",
-            "", "共", 0, "dim",
+            COPY.store, COPY.pill, None, "idle", None, COPY.idle_title, COPY.idle_sub,
+            "", COPY.total, 0, "dim",
         )

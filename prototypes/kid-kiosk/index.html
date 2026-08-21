@@ -17,6 +17,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@700;900&display=swap" rel="stylesheet" />
   <style>
+    @font-face {
+      font-family: "Free HK Kai";
+      src: url("../../src/store/kiosk/fonts/Free-HK-Kai_4700-v1.02.ttf") format("truetype");
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
     :root {
       --wood: #2a2118;
       --ink: #2a2118;
@@ -39,7 +46,8 @@
       height: 100%;
       background: #16120e;
       color: var(--ink);
-      font-family: "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
+      font-family: "Free HK Kai", "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
+      font-synthesis: none;
       overflow: hidden;
     }
 
@@ -366,7 +374,7 @@
 <body>
   <div class="room">
     <p class="hint">
-      士多 demo（港元／元，唔用 $）。<kbd>F</kbd> 全螢幕。
+      士多 demo（港元／元，不用 $）。<kbd>F</kbd> 全螢幕。
       <kbd>1</kbd>–<kbd>5</kbd> 掃 · <kbd>A</kbd> 樂樂 · <kbd>S</kbd> 森 · <kbd>C</kbd> 清 · <kbd>Esc</kbd> 返
     </p>
 
@@ -375,21 +383,21 @@
     </div>
 
     <div class="remote">
-      <h2>大人遙控 — 小朋友唔好睇</h2>
+      <h2>大人遙控 — 小朋友勿看</h2>
       <div class="scans">
         <button class="sku" data-scan="cereal"><img src="assets/cereal.jpg" alt="" /><span>麥片 <small>12元</small></span></button>
         <button class="sku" data-scan="milk"><img src="assets/milk.jpg" alt="" /><span>牛奶 <small>8元</small></span></button>
-        <button class="sku" data-scan="tomato"><img src="assets/tomato.jpg" alt="" /><span>番茄 <small>店標 · 3元</small></span></button>
-        <button class="sku" data-scan="toothpaste"><span class="mini">□</span><span>牙膏 <small>未入 → 記低</small></span></button>
+        <button class="sku" data-scan="tomato"><img src="assets/tomato.jpg" alt="" /><span>蕃茄 <small>店標 · 3元</small></span></button>
+        <button class="sku" data-scan="toothpaste"><span class="mini">□</span><span>牙膏 <small>未入 → 記下</small></span></button>
         <button class="sku" data-scan="apple"><span class="mini">◌</span><span>貼紙 <small>未寫名</small></span></button>
-        <button class="sku" data-scan="junk"><span class="mini">?</span><span>亂碼 <small>唔識</small></span></button>
+        <button class="sku" data-scan="junk"><span class="mini">?</span><span>亂碼 <small>不識</small></span></button>
       </div>
       <div class="taps">
         <button class="act alex" data-tap="alex">樂樂 30元</button>
         <button class="act sam" data-tap="sam">森 5元</button>
         <button class="act ghost" id="clear">清</button>
         <button class="act ghost" id="phoneBtn">大人機</button>
-        <button class="act gold" id="kidMode">畀睇</button>
+        <button class="act gold" id="kidMode">展示</button>
       </div>
     </div>
   </div>
@@ -399,10 +407,33 @@
   </div>
 
   <script>
+    // Keep in sync with src/store/kiosk/copy.py
+    const COPY = {
+      store: "士多",
+      pill: "掃 · 拍",
+      yuan: "元",
+      idleTitle: "請掃",
+      idleSub: "拍卡",
+      paid: "完成",
+      paidSub: (name) => `${name} 餘額`,
+      remain: "餘額",
+      need: "不足",
+      short: "差",
+      learned: "記下",
+      callAdult: (code4) => `請找大人 ·${code4}`,
+      askAdult: "問大人",
+      unknown: "不識",
+      stillHave: "餘額",
+      total: "合計",
+      emptyCart: "未掃",
+      pieces: (n) => `${n}件`,
+      staff: "職員",
+    };
+
     const CATALOG = {
       cereal: { id: "cereal", name: "麥片", price: 12, status: "ready", origin: "household", img: "assets/cereal.jpg", code: "5412345123451" },
       milk: { id: "milk", name: "牛奶", price: 8, status: "ready", origin: "household", img: "assets/milk.jpg", code: "4006381333931" },
-      tomato: { id: "tomato", name: "番茄", price: 3, status: "ready", origin: "store", img: "assets/tomato.jpg", code: "2847193058264" },
+      tomato: { id: "tomato", name: "蕃茄", price: 3, status: "ready", origin: "store", img: "assets/tomato.jpg", code: "2847193058264" },
       toothpaste: { id: "toothpaste", name: null, price: null, status: "unknown", origin: "household", img: null, code: "5901234123457", valid: true },
       apple: { id: "apple", name: null, price: null, status: "draft", origin: "store", img: null, code: "2718403957618", valid: true },
       junk: { id: "junk", name: null, price: null, status: "invalid", valid: false, code: "http://box" },
@@ -411,7 +442,7 @@
     const money = (yuan) =>
       yuan === "" || yuan == null
         ? ""
-        : `<span class="n">${yuan}</span><span class="unit">元</span>`;
+        : `<span class="n">${yuan}</span><span class="unit">${COPY.yuan}</span>`;
 
     const state = {
       screen: "idle",
@@ -599,93 +630,93 @@
           paid: {
             cls: "ok",
             tag: money(r.total),
-            title: "得",
-            sub: `${r.name} 剩`,
+            title: COPY.paid,
+            sub: COPY.paidSub(r.name),
             money: money(r.balance),
             moneyCls: "gold",
             count: "",
-            sumLabel: "剩",
+            sumLabel: COPY.remain,
           },
           need: {
             cls: "nope",
             tag: "",
-            title: "唔夠",
+            title: COPY.need,
             sub: r.name,
             money: money(r.need),
             moneyCls: "need",
-            count: `${cartCount()}件`,
-            sumLabel: "差",
+            count: COPY.pieces(cartCount()),
+            sumLabel: COPY.short,
           },
           learned: {
             cls: "soft",
             tag: "",
-            title: "記低",
-            sub: `叫大人 ·${r.code}`,
+            title: COPY.learned,
+            sub: COPY.callAdult(r.code),
             money: state.cart.length ? money(cartTotal()) : "",
             moneyCls: state.cart.length ? "hot" : "dim",
-            count: state.cart.length ? `${cartCount()}件` : "未賣",
-            sumLabel: state.cart.length ? "共" : "",
+            count: state.cart.length ? COPY.pieces(cartCount()) : COPY.emptyCart,
+            sumLabel: state.cart.length ? COPY.total : "",
           },
           pending: {
             cls: "soft",
             tag: "",
-            title: "問大人",
+            title: COPY.askAdult,
             sub: `·${r.code}`,
             money: state.cart.length ? money(cartTotal()) : "",
             moneyCls: state.cart.length ? "hot" : "dim",
-            count: state.cart.length ? `${cartCount()}件` : "",
-            sumLabel: state.cart.length ? "共" : "",
+            count: state.cart.length ? COPY.pieces(cartCount()) : "",
+            sumLabel: state.cart.length ? COPY.total : "",
           },
           unknown: {
             cls: "nope",
             tag: "",
-            title: "唔識",
+            title: COPY.unknown,
             sub: "",
             money: state.cart.length ? money(cartTotal()) : "",
             moneyCls: state.cart.length ? "hot" : "",
-            count: state.cart.length ? `${cartCount()}件` : "",
-            sumLabel: state.cart.length ? "共" : "",
+            count: state.cart.length ? COPY.pieces(cartCount()) : "",
+            sumLabel: state.cart.length ? COPY.total : "",
           },
           balance: {
             cls: "ok",
             tag: money(r.balance),
             title: r.name,
-            sub: "餘",
+            sub: COPY.stillHave,
             money: money(r.balance),
             moneyCls: "gold",
             count: "",
-            sumLabel: "餘",
+            sumLabel: COPY.stillHave,
           },
         };
         const v = map[r.kind];
-        return { header: "士多", staff, ...v, pic: pictureHTML(r.kind, null), flash: v.cls };
+        return { header: COPY.store, staff, ...v, pic: pictureHTML(r.kind, null), flash: v.cls };
       }
       if (state.screen === "cart" && state.last) {
         const qty = state.cart.find((l) => l.id === state.last.id)?.qty || 1;
         return {
-          header: "士多",
+          header: COPY.store,
           staff,
           tag: money(state.last.price),
           title: state.last.name,
           sub: qty > 1 ? `×${qty}` : "",
           money: money(cartTotal()),
           moneyCls: "hot",
-          count: `${cartCount()}件`,
-          sumLabel: "共",
+          count: COPY.pieces(cartCount()),
+          sumLabel: COPY.total,
           pic: pictureHTML("cart", state.last),
           flash: null,
         };
       }
       return {
-        header: "士多",
+        header: COPY.store,
         staff,
         tag: "",
-        title: "掃嘢",
-        sub: "拍卡",
+        title: COPY.idleTitle,
+        sub: COPY.idleSub,
         money: money(0),
         moneyCls: "dim",
         count: "",
-        sumLabel: "共",
+        sumLabel: COPY.total,
         pic: pictureHTML("idle", null),
         flash: null,
       };
@@ -698,7 +729,7 @@
       stage.innerHTML = `
         <header class="shop ${v.staff ? "staff" : ""}">
           <div class="mark">${v.header}</div>
-          <div class="pill">${v.staff ? "職員" : "掃 · 拍"}</div>
+          <div class="pill">${v.staff ? COPY.staff : COPY.pill}</div>
         </header>
         <section class="hero">
           ${v.pic}
@@ -733,9 +764,9 @@
       }).join("");
       document.getElementById("phone").innerHTML = `
         <h3>未寫</h3>
-        <p class="lead">細路掃咗。你填名同幾元。</p>
-        ${rows || "<p>無嘢。</p>"}
-        <p class="lead" style="margin-top:18px">撳外面關。</p>
+        <p class="lead">小孩已掃。請填名稱與金額。</p>
+        ${rows || "<p>沒有。</p>"}
+        <p class="lead" style="margin-top:18px">按外面關閉。</p>
       `;
     }
 

@@ -39,6 +39,9 @@ store-kiosk = "store.kiosk.main:run"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+store = ["kiosk/fonts/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # "." so `uv run pytest` (console script) can import `tests.*`; `src` for the package.
@@ -63,6 +66,7 @@ mypy-init-return = true
 "alembic/**" = ["ANN"]
 "src/store/kiosk/draw.py" = ["ANN401"]
 "src/store/kiosk/main.py" = ["ANN401"]
+"src/store/kiosk/typeface.py" = ["ANN401"]
 
 [tool.mypy]
 python_version = "3.12"
