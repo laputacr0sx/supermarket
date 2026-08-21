@@ -88,9 +88,12 @@ def doctor_page(request: Request) -> HTMLResponse:
             journal = str(conn.exec_driver_sql("PRAGMA journal_mode").scalar())
     backup_dir = Path("/var/backups/store")
     backup = "尚未"
-    if backup_dir.is_dir():
-        found = sorted(backup_dir.glob("store-*.db"))
-        backup = found[-1].name if found else "尚未"
+    try:
+        if backup_dir.is_dir():
+            found = sorted(backup_dir.glob("store-*.db"))
+            backup = found[-1].name if found else "尚未"
+    except OSError:
+        backup = "尚未"
     return _html(
         request,
         "doctor.html",
