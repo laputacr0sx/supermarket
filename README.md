@@ -56,7 +56,7 @@ uv run store-enroll AABBCCDD 杏 --yuan 15
 
 Empty tap prints the balance. A cart that costs too much prints `need`. `--topup` is yuan.
 
-Kid till (window; pygame-ce extra). Type a barcode and Enter; `A` taps 樂樂, `S` taps 森. Staff: Ctrl+Alt+Shift+P then PIN `0000`, then F5/F6/F7 top-up, F8 twice reset, F10 void, Esc leave.
+Kid till (window; pygame-ce extra). Type a barcode and Enter; `A` taps 樂樂, `S` taps 森. Staff: Ctrl+Alt+Shift+P (header turns amber `STAFF` / `PIN`), type PIN `0000`, then F5/F6/F7 top-up, F8 twice reset, F10 void, Esc leave.
 
 ```
 uv sync --extra kiosk
