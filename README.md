@@ -42,7 +42,7 @@ uv run store-scan 4890000000010
 uv run store-labels data/labels.pdf
 ```
 
-`store-scan` POSTs to `http://127.0.0.1:8787/pos/scan`. Ready cereal prints the name; a new valid pack prints `learned`; garbage prints `reject`. `store-labels` mints a 3×8 A4 sheet of shop drafts.
+`store-scan` POSTs to `http://127.0.0.1:8787/pos/scan`. Ready cereal prints the name; a new valid pack prints `learned`; garbage prints `reject`. `store-labels` mints a Rayfilm 0102 A4 sheet (5×13, 38.1×21.2 mm, 65 stickers). Print at 100% — do not fit-to-page.
 
 With `store-api` still running:
 

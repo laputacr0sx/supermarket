@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from reportlab.lib.pagesizes import A4
 from sqlalchemy.orm import Session
 
 from store.domain.errors import InvalidBarcode, UnknownProduct
@@ -51,3 +52,25 @@ def test_print_sheet_rejects_bad_count(seeded: Session, tmp_path: Path) -> None:
         labels.print_sheet(seeded, tmp_path / "x.pdf", count=0)
     with pytest.raises(InvalidBarcode):
         labels.print_sheet(seeded, tmp_path / "x.pdf", count=labels.PAGE + 1)
+
+
+def test_sheet_geometry_is_rayfilm_0102() -> None:
+    assert labels.COLS == 5
+    assert labels.ROWS == 13
+    assert labels.PAGE == 65
+    page_w, page_h = A4
+    x, y = labels.label_origin(0)
+    assert x == pytest.approx(labels.LEFT)
+    assert y + labels.LABEL_H == pytest.approx(page_h - labels.TOP)
+    last_x, last_y = labels.label_origin(labels.PAGE - 1)
+    assert last_x + labels.LABEL_W <= page_w
+    assert last_y >= 0
+
+
+def test_full_sheet_embeds_every_code(seeded: Session, tmp_path: Path) -> None:
+    path = tmp_path / "full.pdf"
+    codes = labels.print_sheet(seeded, path, count=labels.PAGE)
+    assert len(codes) == labels.PAGE
+    data = path.read_bytes()
+    for code in codes:
+        assert code.encode("ascii") in data
