@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import time
+from dataclasses import replace
 from typing import Any
 
 from store.config import get_settings
 from store.io.scanner import assemble
 from store.kiosk.client import Api
 from store.kiosk.draw import H, W, find_cjk_font, paint
+from store.kiosk.keys import is_staff_chord
 from store.kiosk.fsm import (
     Barcode,
     Effect,
@@ -79,7 +81,6 @@ def run() -> None:
     waiting_pin = False
     running = True
     clock = pygame.time.Clock()
-    mods_staff = pygame.KMOD_CTRL | pygame.KMOD_ALT | pygame.KMOD_SHIFT
     fkeys = {
         pygame.K_F5: "F5",
         pygame.K_F6: "F6",
@@ -96,22 +97,27 @@ def run() -> None:
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        if state.mode in {"staff", "staff_queued"}:
+                        if waiting_pin:
+                            waiting_pin = False
+                            pin = []
+                        elif state.mode in {"staff", "staff_queued"}:
                             state, _ = step(state, Key("Escape"), now=now)
                         else:
                             running = False
                     elif waiting_pin:
+                        digit = ""
                         if event.unicode.isdigit():
-                            pin.append(event.unicode)
+                            digit = event.unicode
+                        elif pygame.K_0 <= event.key <= pygame.K_9:
+                            digit = str(event.key - pygame.K_0)
+                        if digit:
+                            pin.append(digit)
                             if len(pin) >= 4:
                                 waiting_pin = False
                                 if "".join(pin) == settings.staff_pin:
                                     state, _ = step(state, StaffUnlock(), now=now)
                                 pin = []
-                    elif (
-                        event.key == pygame.K_p
-                        and event.mod & mods_staff == mods_staff
-                    ):
+                    elif is_staff_chord(event.key, event.mod):
                         waiting_pin = True
                         pin = []
                     elif event.key in fkeys:
@@ -129,7 +135,17 @@ def run() -> None:
                     elif event.unicode.isdigit():
                         name = "KEY_0" if event.unicode == "0" else f"KEY_{event.unicode}"
                         keys.append((name, 1))
-            paint(pygame, Fonts, screen, view(state))
+            vm = view(state)
+            if waiting_pin:
+                vm = replace(
+                    vm,
+                    header="STAFF",
+                    pill="PIN",
+                    title="PIN",
+                    sub="·" * len(pin),
+                    flash="soft",
+                )
+            paint(pygame, Fonts, screen, vm)
             pygame.display.flip()
             clock.tick(30)
     finally:
