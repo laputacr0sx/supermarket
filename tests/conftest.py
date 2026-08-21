@@ -27,10 +27,11 @@ UNKNOWN_OK = ean13("590123412345")
 
 @pytest.fixture(autouse=True)
 def isolate_store_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Tests must not see the host's STORE_* env or STORE_CONFIG overlay."""
+    """Host STORE_* and default.toml must not point tests at a real sqlite file."""
     for key in list(os.environ):
         if key.startswith("STORE_"):
             monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("STORE_DATABASE", ":memory:")
 
 
 @pytest.fixture

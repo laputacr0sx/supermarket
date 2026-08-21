@@ -3,8 +3,7 @@ from __future__ import annotations
 import time
 from typing import Annotated, NoReturn
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from store.api.deps import get_session
@@ -53,8 +52,10 @@ def _raise(exc: Exception) -> NoReturn:
 
 
 @router.post("/scan")
-def pos_scan(body: ScanIn, request: Request, session: SessionDep) -> JSONResponse:
-    learn = bool(getattr(request.app.state.settings, "learn_on_unknown", True))
+def pos_scan(
+    body: ScanIn, request: Request, session: SessionDep, response: Response
+) -> ScanOut:
+    learn = bool(request.app.state.settings.learn_on_unknown)
     result = catalog.scan(session, body.barcode, learn=learn)
     if result.action == "reject":
         raise HTTPException(status_code=422, detail={"action": "reject"})
@@ -62,10 +63,9 @@ def pos_scan(body: ScanIn, request: Request, session: SessionDep) -> JSONRespons
         action=result.action,
         product=ProductOut.model_validate(result.product) if result.product else None,
     )
-    return JSONResponse(
-        payload.model_dump(),
-        status_code=201 if result.action == "learned" else 200,
-    )
+    if result.action == "learned":
+        response.status_code = 201
+    return payload
 
 
 @router.get("/products/{barcode}")

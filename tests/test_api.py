@@ -120,3 +120,24 @@ def test_card_and_topup() -> None:
         )
         assert top.status_code == 200
         assert top.json()["balance_cents"] == yuan_to_cents(15)
+
+
+def test_pos_body_validation() -> None:
+    with _client() as client:
+        empty_cart = client.post("/pos/checkout", json={"uid": "DEADBEEF", "items": []})
+        assert empty_cart.status_code == 422
+
+        empty_scan = client.post("/pos/scan", json={"barcode": ""})
+        assert empty_scan.status_code == 422
+
+        bad_kind = client.post(
+            "/pos/ledger",
+            json={"uid": "DEADBEEF", "kind": "gift", "amount_cents": 100},
+        )
+        assert bad_kind.status_code == 422
+
+        topup_zero = client.post(
+            "/pos/ledger",
+            json={"uid": "DEADBEEF", "kind": "topup", "amount_cents": 0},
+        )
+        assert topup_zero.status_code == 422

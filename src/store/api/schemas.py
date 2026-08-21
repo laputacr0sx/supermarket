@@ -2,27 +2,35 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal, Self
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ScanIn(BaseModel):
-    barcode: str
+    barcode: str = Field(min_length=1)
 
 
 class CheckoutItemIn(BaseModel):
-    barcode: str
+    barcode: str = Field(min_length=1)
     qty: int = Field(ge=1)
 
 
 class CheckoutIn(BaseModel):
-    uid: str
-    items: list[CheckoutItemIn]
+    uid: str = Field(min_length=1)
+    items: list[CheckoutItemIn] = Field(min_length=1)
 
 
 class LedgerIn(BaseModel):
-    uid: str
-    kind: str
+    uid: str = Field(min_length=1)
+    kind: Literal["topup", "reset"]
     amount_cents: int | None = None
+
+    @model_validator(mode="after")
+    def topup_needs_positive_amount(self) -> Self:
+        if self.kind == "topup" and (self.amount_cents is None or self.amount_cents <= 0):
+            raise ValueError("topup requires amount_cents > 0")
+        return self
 
 
 class VoidIn(BaseModel):
@@ -44,7 +52,7 @@ class ProductOut(BaseModel):
 
 
 class ScanOut(BaseModel):
-    action: str
+    action: Literal["sell", "inactive", "pending", "learned"]
     product: ProductOut | None = None
 
 
