@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from store.domain.errors import ProductNotSellable
+from store.persist import repo
 from store.services import catalog
 from tests.conftest import CEREAL, DRAFT, UNKNOWN_OK
 
@@ -45,6 +46,21 @@ def test_ready_scan_is_sell(seeded: Session) -> None:
 def test_learn_off_rejects_unknown(seeded: Session) -> None:
     result = catalog.scan(seeded, UNKNOWN_OK, learn=False)
     assert result.action == "reject"
+
+
+def test_drop_draft_removes_row(seeded: Session) -> None:
+    catalog.drop_draft(seeded, DRAFT)
+    assert repo.get_product_by_barcode(seeded, DRAFT) is None
+
+
+def test_drop_ready_is_rejected(seeded: Session) -> None:
+    with pytest.raises(ProductNotSellable):
+        catalog.drop_draft(seeded, CEREAL)
+
+
+def test_deactivate_ready(seeded: Session) -> None:
+    product = catalog.deactivate(seeded, CEREAL)
+    assert product.active == 0
 
 
 def test_mint_store_drafts_are_random_valid(seeded: Session) -> None:

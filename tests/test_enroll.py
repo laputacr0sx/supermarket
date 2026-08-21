@@ -26,6 +26,11 @@ def test_enroll_duplicate_uid_rejected(seeded: Session) -> None:
         cards.enroll(seeded, "DEADBEEF", "twin")
 
 
+def test_deactivate_card(seeded: Session) -> None:
+    card = cards.deactivate(seeded, "DEADBEEF")
+    assert card.active == 0
+
+
 def test_enroll_staff_has_zero_shop_balance(session: Session) -> None:
     card = cards.enroll(session, "0FF1CE00", "職員二", role="staff", opening_cents=0)
     assert card.role == "staff"

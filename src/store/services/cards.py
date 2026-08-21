@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from store.domain.errors import DuplicateCard, InvalidLedger
+from store.domain.errors import DuplicateCard, InvalidLedger, UnknownCard
 from store.domain.uid import normalize_uid
 from store.persist import repo
 from store.persist.tables import Account, Card
@@ -37,3 +37,16 @@ def enroll(
     if opening_cents > 0:
         ledger.apply_ledger(session, uid, "topup", opening_cents)
     return card
+
+
+def deactivate(session: Session, uid: str) -> Card:
+    card = repo.get_card_by_uid(session, normalize_uid(uid))
+    if card is None:
+        raise UnknownCard(uid)
+    card.active = 0
+    session.flush()
+    return card
+
+
+def list_cards(session: Session) -> list[Card]:
+    return repo.list_cards(session)

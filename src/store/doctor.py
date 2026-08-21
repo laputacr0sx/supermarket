@@ -33,7 +33,7 @@ def run() -> None:
             print("by-id    (unreadable)")
     else:
         print("by-id    (none — fill config/devices.example.toml on the LIFEBOOK)")
-    print("phase    2 (console scan + A4 labels; grab() needs Linux + gun)")
+    print("phase    6 (phone admin play day; grab/pcsc wait for the LIFEBOOK)")
 
 
 if __name__ == "__main__":

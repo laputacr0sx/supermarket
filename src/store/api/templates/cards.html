@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}卡{% endblock %}
+{% block heading %}卡{% endblock %}
+{% block body %}
+<form method="post" action="/cards" class="card">
+  <input name="uid" placeholder="UID" required>
+  <input name="name" placeholder="名" required>
+  <select name="role">
+    <option value="child">小朋友</option>
+    <option value="staff">職員</option>
+  </select>
+  <input name="yuan" type="number" min="0" step="1" value="0" placeholder="開戶元">
+  <button type="submit">開卡</button>
+</form>
+{% for row in cards %}
+  <div class="card">
+    <strong>{{ row.card.child_name }}</strong>
+    <p class="muted">{{ row.card.role }} · {{ row.balance_cents // 100 }}元
+      {% if not row.card.active %}· 停用{% endif %}
+    </p>
+    {% if row.card.active %}
+    <form method="post" action="/cards/{{ row.card.uid }}/topup">
+      <button name="yuan" value="5" type="submit">+$5</button>
+      <button name="yuan" value="10" type="submit">+$10</button>
+      <button name="yuan" value="20" type="submit">+$20</button>
+    </form>
+    <form method="post" action="/cards/{{ row.card.uid }}/reset">
+      <button class="dim" type="submit">歸零</button>
+    </form>
+    <form method="post" action="/cards/{{ row.card.uid }}/deactivate">
+      <button class="dim" type="submit">停用</button>
+    </form>
+    {% endif %}
+  </div>
+{% endfor %}
+{% endblock %}

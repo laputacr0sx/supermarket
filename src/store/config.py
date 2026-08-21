@@ -26,8 +26,12 @@ def _toml_overlay() -> dict[str, str | int | float | bool]:
         return {}
     data = tomllib.loads(path.read_text(encoding="utf-8"))
     flat: dict[str, str | int | float | bool] = {}
-    if "paths" in data and data["paths"].get("database"):
-        flat["database"] = data["paths"]["database"]
+    if "paths" in data:
+        paths = data["paths"]
+        if paths.get("database"):
+            flat["database"] = paths["database"]
+        if paths.get("product_images"):
+            flat["product_images"] = paths["product_images"]
     if "net" in data:
         net = data["net"]
         for key in ("pos_host", "pos_port", "admin_host", "admin_port", "docs"):
@@ -60,6 +64,7 @@ class Settings(BaseSettings):
     staff_pin: str = "0000"
     admin_user: str = "admin"
     admin_password: str = ""
+    product_images: str = ""
 
 
 _ENV_FOR_FIELD = {
@@ -77,6 +82,7 @@ _ENV_FOR_FIELD = {
     "staff_pin": "STORE_STAFF_PIN",
     "admin_user": "STORE_ADMIN_USER",
     "admin_password": "STORE_ADMIN_PASSWORD",
+    "product_images": "STORE_PRODUCT_IMAGES",
 }
 
 

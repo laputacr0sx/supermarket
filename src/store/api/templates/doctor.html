@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}醫生{% endblock %}
+{% block heading %}醫生{% endblock %}
+{% block body %}
+<ul>
+  <li>API 正常</li>
+  <li>資料庫 <code>{{ database }}</code></li>
+  <li>檔案 {% if db_exists %}有{% else %}無{% endif %}</li>
+  <li>journal {{ journal }}</li>
+  <li>相片 <code>{{ images }}</code></li>
+  <li>備份 {{ backup }}</li>
+</ul>
+{% endblock %}

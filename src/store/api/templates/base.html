@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ store_name }} · {% block title %}admin{% endblock %}</title>
+  <style>
+    body { font-family: sans-serif; margin: 1rem; background: #f6efe4; color: #2a2118; }
+    nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    a.btn, button { display: inline-block; padding: 0.7rem 1rem; margin: 0.2rem 0;
+      font-size: 1.05rem; background: #c8161d; color: #fff; border: 0; border-radius: 8px;
+      text-decoration: none; }
+    button.dim, a.dim { background: #8a7b6b; }
+    li, .card { margin: 1rem 0; padding: 0.8rem; background: #fffaf2; border-radius: 8px; }
+    input, select { font-size: 1.1rem; padding: 0.4rem; margin: 0.2rem; max-width: 100%; }
+    .muted { color: #8a7b6b; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.4rem 0.2rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="btn dim" href="/">未完成</a>
+    <a class="btn dim" href="/shelf">貨架</a>
+    <a class="btn dim" href="/cards">卡</a>
+    <a class="btn dim" href="/sales">今日</a>
+    <a class="btn dim" href="/doctor">醫生</a>
+    <a class="btn" href="/sheet.pdf">印一張標籤</a>
+  </nav>
+  <h1>{{ store_name }} · {% block heading %}{% endblock %}</h1>
+  {% block body %}{% endblock %}
+</body>
+</html>
