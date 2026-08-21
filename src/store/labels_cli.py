@@ -1,4 +1,4 @@
-"""Write an A4 shop-label PDF. Default mints a 3x8 sheet of drafts."""
+"""Write an A4 shop-label PDF. Default mints a Rayfilm 0102 sheet (5x13)."""
 
 from __future__ import annotations
 
