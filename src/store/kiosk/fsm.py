@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from typing import TypedDict
 
 from store.domain.money import cents_to_yuan
 
@@ -10,6 +11,20 @@ RESULT_S = 3.0
 FLASH_S = 2.0
 STAFF_S = 30.0
 TOPUP = {"F5": 500, "F6": 1000, "F7": 2000}
+
+
+class Overlay(TypedDict, total=False):
+    code4: str
+    name: str
+    total: int | None
+    balance: int | None
+    need: int | None
+
+
+class Queue(TypedDict, total=False):
+    kind: str
+    amount_cents: int | None
+    confirm: bool
 
 
 @dataclass(frozen=True)
@@ -42,8 +57,8 @@ class KioskState:
     result: str | None
     until: float | None
     last: Line | None
-    overlay: dict
-    queue: dict
+    overlay: Overlay
+    queue: Queue
 
 
 @dataclass(frozen=True)
@@ -84,7 +99,7 @@ class StaffUnlock:
 @dataclass(frozen=True)
 class ScanReply:
     action: str
-    product: dict | None
+    product: dict[str, object] | None
 
 
 @dataclass(frozen=True)
@@ -94,6 +109,9 @@ class PayReply:
     balance_cents: int | None = None
     need_cents: int | None = None
     name: str = ""
+
+
+type Event = Barcode | Uid | Tick | Key | StaffUnlock | ScanReply | PayReply
 
 
 def idle() -> KioskState:
@@ -122,7 +140,7 @@ def _add(cart: tuple[Line, ...], line: Line) -> tuple[Line, ...]:
     return tuple(out)
 
 
-def step(state: KioskState, event: object, *, now: float) -> tuple[KioskState, Effect]:
+def step(state: KioskState, event: Event, *, now: float) -> tuple[KioskState, Effect]:
     if isinstance(event, Tick) and state.until is not None and now >= state.until:
         mode = "cart" if state.cart else "idle"
         nxt = replace(state, mode=mode, result=None, until=None, overlay={}, queue={})
@@ -168,21 +186,26 @@ def _on_key(state: KioskState, event: Key, now: float) -> tuple[KioskState, Effe
         nxt = replace(state, mode=mode, queue={}, until=None)
         return nxt, Effect("none")
     if name in TOPUP:
-        queue = {"kind": "topup", "amount_cents": TOPUP[name]}
+        queue: Queue = {"kind": "topup", "amount_cents": TOPUP[name]}
         nxt = replace(state, mode="staff_queued", queue=queue, until=now + STAFF_S)
         return nxt, Effect("none")
     if name == "F8":
         if state.queue.get("kind") == "reset" and state.queue.get("confirm"):
             return state, Effect("none")
         if state.queue.get("kind") == "reset":
-            queue = {"kind": "reset", "amount_cents": None, "confirm": True}
+            queue = Queue(kind="reset", amount_cents=None, confirm=True)
         else:
-            queue = {"kind": "reset", "amount_cents": None, "confirm": False}
+            queue = Queue(kind="reset", amount_cents=None, confirm=False)
         nxt = replace(state, mode="staff_queued", queue=queue, until=now + STAFF_S)
         return nxt, Effect("none")
     if name == "F10":
         return state, Effect("void")
     return state, Effect("none")
+
+
+def _price_cents(product: dict[str, object]) -> int:
+    raw = product.get("price_cents") or 0
+    return raw if isinstance(raw, int) else 0
 
 
 def _on_scan(state: KioskState, event: ScanReply, now: float) -> tuple[KioskState, Effect]:
@@ -191,18 +214,18 @@ def _on_scan(state: KioskState, event: ScanReply, now: float) -> tuple[KioskStat
         line = Line(
             str(product.get("barcode") or ""),
             str(product.get("name") or ""),
-            int(product.get("price_cents") or 0),
+            _price_cents(product),
             1,
         )
         cart = _add(state.cart, line)
         nxt = replace(state, mode="cart", cart=cart, last=line, result=None, until=None)
         return nxt, Effect("none")
     if event.action == "learned":
-        overlay = {"code4": str(product.get("barcode") or "")[-4:]}
+        overlay: Overlay = {"code4": str(product.get("barcode") or "")[-4:]}
         nxt = replace(state, mode="result", result="learned", until=now + FLASH_S, overlay=overlay)
         return nxt, Effect("none")
     if event.action == "pending":
-        overlay = {"code4": str(product.get("barcode") or "")[-4:]}
+        overlay = Overlay(code4=str(product.get("barcode") or "")[-4:])
         nxt = replace(state, mode="result", result="pending", until=now + FLASH_S, overlay=overlay)
         return nxt, Effect("none")
     nxt = replace(state, mode="result", result="unknown", until=now + FLASH_S, overlay={})
@@ -211,7 +234,7 @@ def _on_scan(state: KioskState, event: ScanReply, now: float) -> tuple[KioskStat
 
 def _on_pay(state: KioskState, event: PayReply, now: float) -> tuple[KioskState, Effect]:
     if event.kind == "paid":
-        overlay = {
+        overlay: Overlay = {
             "name": event.name,
             "total": event.total_cents,
             "balance": event.balance_cents,
@@ -227,14 +250,14 @@ def _on_pay(state: KioskState, event: PayReply, now: float) -> tuple[KioskState,
             queue={},
         ), Effect("none")
     if event.kind == "need":
-        overlay = {"name": event.name, "need": event.need_cents}
+        overlay = Overlay(name=event.name, need=event.need_cents)
         nxt = replace(state, mode="result", result="need", until=now + RESULT_S, overlay=overlay)
         return nxt, Effect("none")
     if event.kind == "balance":
-        overlay = {"name": event.name, "balance": event.balance_cents}
+        overlay = Overlay(name=event.name, balance=event.balance_cents)
         nxt = replace(state, mode="result", result="balance", until=now + RESULT_S, overlay=overlay)
         return nxt, Effect("none")
-    overlay = {"name": event.name}
+    overlay = Overlay(name=event.name)
     nxt = replace(state, mode="result", result="unknown", until=now + FLASH_S, overlay=overlay)
     return nxt, Effect("none")
 
@@ -246,12 +269,12 @@ def view(state: KioskState) -> ViewModel:
     if state.result == "paid":
         return ViewModel(
             "士多", "掃 · 拍", "ok", "card",
-            cents_to_yuan(int(state.overlay.get("total") or 0)),
+            cents_to_yuan(state.overlay.get("total") or 0),
             "得",
             f"{state.overlay.get('name') or ''} 剩",
             "",
             "剩",
-            cents_to_yuan(int(state.overlay.get("balance") or 0)),
+            cents_to_yuan(state.overlay.get("balance") or 0),
             "gold",
         )
     if state.result == "need":
@@ -259,7 +282,7 @@ def view(state: KioskState) -> ViewModel:
             "士多", "掃 · 拍", "nope", "card", None, "唔夠",
             str(state.overlay.get("name") or ""),
             count, "差",
-            cents_to_yuan(int(state.overlay.get("need") or 0)),
+            cents_to_yuan(state.overlay.get("need") or 0),
             "need",
         )
     if state.result == "learned":
@@ -280,7 +303,7 @@ def view(state: KioskState) -> ViewModel:
             "hot" if n else "dim",
         )
     if state.result == "balance":
-        yuan = cents_to_yuan(int(state.overlay.get("balance") or 0))
+        yuan = cents_to_yuan(state.overlay.get("balance") or 0)
         return ViewModel(
             "士多", "掃 · 拍", "ok", "card", yuan,
             str(state.overlay.get("name") or ""), "餘",

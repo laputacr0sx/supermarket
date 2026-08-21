@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Protocol
+from collections.abc import Mapping
+from typing import Protocol
 
 import httpx2
 
@@ -12,15 +13,23 @@ from store.config import get_settings
 from store.domain.money import format_yuan
 
 
+class HttpResponse(Protocol):
+    status_code: int
+
+    def json(self) -> object: ...
+
+
 class ScanClient(Protocol):
-    def post(self, url: str, json: dict[str, str]) -> Any: ...
+    def post(self, url: str, *, json: Mapping[str, str]) -> HttpResponse: ...
 
 
-def format_scan(action: str, product: dict | None) -> str:
-    code = (product or {}).get("barcode") or ""
+def format_scan(action: str, product: Mapping[str, object] | None) -> str:
+    raw_code = (product or {}).get("barcode") or ""
+    code = raw_code if isinstance(raw_code, str) else ""
     tail = code[-4:] if code else ""
     if action == "sell" and product:
-        name = product.get("name") or code
+        raw_name = product.get("name")
+        name = raw_name if isinstance(raw_name, str) else code
         cents = product.get("price_cents")
         extra = f" {format_yuan(cents)}" if isinstance(cents, int) else ""
         return f"{name}{extra}"

@@ -16,7 +16,7 @@ from store.domain.errors import (
     UnknownProduct,
 )
 from store.persist import repo
-from store.persist.tables import Ledger, LineItem, Sale
+from store.persist.tables import Account, Card, Ledger, LineItem, Product, Sale
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def _require_shopper(session: Session, uid: str):
+def _require_shopper(session: Session, uid: str) -> tuple[Card, Account]:
     card = repo.get_card_by_uid(session, uid.upper().replace(":", "").replace(" ", ""))
     if card is None:
         raise UnknownCard(uid)
@@ -62,23 +62,24 @@ def checkout(session: Session, uid: str, items: list[CheckoutItem]) -> CheckoutR
         code = bc.normalize(item.barcode)
         merged[code] = merged.get(code, 0) + item.qty
 
-    lines: list[tuple] = []
+    lines: list[tuple[Product, int, int]] = []
     total = 0
     for code, qty in merged.items():
         product = repo.get_product_by_barcode(session, code)
         if product is None:
             raise UnknownProduct(code)
+        unit = product.price_cents
         if (
             product.status != "ready"
             or not product.active
-            or product.price_cents is None
+            or unit is None
             or not (product.name or "").strip()
         ):
             raise ProductNotSellable(code)
         if product.stock is not None and product.stock < qty:
             raise InsufficientStock(code)
-        lines.append((product, qty, product.price_cents))
-        total += product.price_cents * qty
+        lines.append((product, qty, unit))
+        total += unit * qty
 
     if account.balance_cents < total:
         raise InsufficientFunds(total - account.balance_cents)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Protocol
 
 from store.kiosk.fsm import ViewModel
 
@@ -36,7 +37,11 @@ def find_cjk_font() -> str | None:
     return None
 
 
-def paint(pygame, fonts, dest, vm: ViewModel) -> None:
+class Fonts(Protocol):
+    def render(self, text: str, size: int, color: tuple[int, int, int]) -> Any: ...
+
+
+def paint(pygame: Any, fonts: Fonts, dest: Any, vm: ViewModel) -> None:
     bg = CREAM
     if vm.flash == "ok":
         bg = OK_BG

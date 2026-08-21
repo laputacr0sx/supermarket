@@ -20,12 +20,12 @@ def default_database_path() -> Path:
     return Path("/var/lib/store/store.db")
 
 
-def _toml_overlay() -> dict:
+def _toml_overlay() -> dict[str, str | int | float | bool]:
     path = Path(os.environ.get("STORE_CONFIG", _DEFAULT_TOML))
     if not path.is_file():
         return {}
     data = tomllib.loads(path.read_text(encoding="utf-8"))
-    flat: dict = {}
+    flat: dict[str, str | int | float | bool] = {}
     if "paths" in data and data["paths"].get("database"):
         flat["database"] = data["paths"]["database"]
     if "net" in data:
@@ -85,4 +85,4 @@ def get_settings() -> Settings:
     for field, env_name in _ENV_FOR_FIELD.items():
         if os.environ.get(env_name) is not None:
             overlay.pop(field, None)
-    return Settings(**overlay)
+    return Settings.model_validate(overlay)

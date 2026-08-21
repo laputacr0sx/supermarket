@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from store.config import get_settings
 from store.domain.barcode import ean13_check
@@ -21,7 +22,7 @@ def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def seed_session(session) -> None:
+def seed_session(session: Session) -> None:
     now = _now()
     products = [
         ("麥片", _ean13("489000000001"), 12, "household"),

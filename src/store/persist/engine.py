@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Protocol
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -22,7 +23,18 @@ def sqlite_url(database: str) -> str:
     return "sqlite+pysqlite:///" + path.resolve().as_posix()
 
 
-def _apply_pragmas(dbapi_conn, _connection_record) -> None:
+class _DbapiCursor(Protocol):
+    def execute(self, statement: str) -> object: ...
+    def close(self) -> None: ...
+
+
+class _DbapiConnection(Protocol):
+    isolation_level: str | None
+
+    def cursor(self) -> _DbapiCursor: ...
+
+
+def _apply_pragmas(dbapi_conn: _DbapiConnection, _connection_record: object) -> None:
     # SQLAlchemy emits BEGIN; stop sqlite3 from emitting its own.
     dbapi_conn.isolation_level = None
     cursor = dbapi_conn.cursor()
@@ -33,20 +45,20 @@ def _apply_pragmas(dbapi_conn, _connection_record) -> None:
     cursor.close()
 
 
-def _begin_immediate(conn) -> None:
+def _begin_immediate(conn: Connection) -> None:
     conn.exec_driver_sql("BEGIN IMMEDIATE")
 
 
 def make_engine(database: str) -> Engine:
     url = sqlite_url(database)
     memory = ":memory:" in url
-    kwargs: dict = {"future": True}
+    connect_args = {"check_same_thread": False}
     if memory:
-        kwargs["connect_args"] = {"check_same_thread": False}
-        kwargs["poolclass"] = StaticPool
+        engine = create_engine(
+            url, future=True, connect_args=connect_args, poolclass=StaticPool
+        )
     else:
-        kwargs["connect_args"] = {"check_same_thread": False}
-    engine = create_engine(url, **kwargs)
+        engine = create_engine(url, future=True, connect_args=connect_args)
     event.listen(engine, "connect", _apply_pragmas)
     event.listen(engine, "begin", _begin_immediate)
     return engine
