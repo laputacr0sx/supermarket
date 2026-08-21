@@ -12,29 +12,29 @@ def _downs(digits: str) -> list[tuple[str, int]]:
     return events
 
 
-def test_enter_emits_one_barcode():
+def test_enter_emits_one_barcode() -> None:
     assert assemble(_downs("5901234123457")) == ["5901234123457"]
 
 
-def test_two_scans_in_one_stream():
+def test_two_scans_in_one_stream() -> None:
     stream = _downs("5901234123457") + _downs("4890000000017")
     assert assemble(stream) == ["5901234123457", "4890000000017"]
 
 
-def test_ignores_auto_repeat():
+def test_ignores_auto_repeat() -> None:
     events = [("KEY_5", 1), ("KEY_5", 2), ("KEY_9", 1), ("KEY_ENTER", 1)]
     assert assemble(events) == ["59"]
 
 
-def test_incomplete_without_enter_is_empty():
+def test_incomplete_without_enter_is_empty() -> None:
     assert assemble([("KEY_5", 1), ("KEY_9", 1)]) == []
 
 
-def test_key_up_does_not_duplicate():
+def test_key_up_does_not_duplicate() -> None:
     events = [("KEY_1", 1), ("KEY_1", 0), ("KEY_2", 1), ("KEY_2", 0), ("KEY_ENTER", 1)]
     assert assemble(events) == ["12"]
 
 
-def test_keypad_enter():
+def test_keypad_enter() -> None:
     events = [("KEY_KP5", 1), ("KEY_KP9", 1), ("KEY_KPENTER", 1)]
     assert assemble(events) == ["59"]

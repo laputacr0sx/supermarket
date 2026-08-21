@@ -11,7 +11,7 @@ from tests.conftest import CEREAL, DRAFT, MILK, UNKNOWN_OK
 TOMATO_SAFE = "200184739201" + ean13_check("200184739201")
 
 
-def _client():
+def _client() -> TestClient:
     engine = make_engine(":memory:")
     create_schema(engine)
     factory = make_session_factory(engine)
@@ -37,7 +37,7 @@ def _client():
     return TestClient(app)
 
 
-def test_scan_ready_then_unknown_then_garbage():
+def test_scan_ready_then_unknown_then_garbage() -> None:
     with _client() as client:
         ready = client.post("/pos/scan", json={"barcode": CEREAL})
         assert ready.status_code == 200
@@ -56,13 +56,13 @@ def test_scan_ready_then_unknown_then_garbage():
         assert bad.status_code == 422
 
 
-def test_get_product_does_not_learn():
+def test_get_product_does_not_learn() -> None:
     with _client() as client:
         missing = client.get(f"/pos/products/{UNKNOWN_OK}")
         assert missing.status_code == 404
 
 
-def test_checkout_and_402_and_draft():
+def test_checkout_and_402_and_draft() -> None:
     with _client() as client:
         draft = client.post(
             "/pos/checkout",
@@ -91,7 +91,7 @@ def test_checkout_and_402_and_draft():
         assert poor.json()["detail"]["need_cents"] == yuan_to_cents(15)
 
 
-def test_idempotency_key_replays():
+def test_idempotency_key_replays() -> None:
     with _client() as client:
         headers = {"Idempotency-Key": "play-1"}
         first = client.post(
@@ -109,7 +109,7 @@ def test_idempotency_key_replays():
         assert first.json()["sale_id"] == second.json()["sale_id"]
 
 
-def test_card_and_topup():
+def test_card_and_topup() -> None:
     with _client() as client:
         card = client.get("/pos/cards/DEADBEEF")
         assert card.status_code == 200
@@ -120,3 +120,39 @@ def test_card_and_topup():
         )
         assert top.status_code == 200
         assert top.json()["balance_cents"] == yuan_to_cents(15)
+
+
+def test_uid_debounce_is_409() -> None:
+    with _client() as client:
+        first = client.post(
+            "/pos/checkout",
+            json={"uid": "DEADBEEF", "items": [{"barcode": CEREAL, "qty": 1}]},
+        )
+        second = client.post(
+            "/pos/checkout",
+            json={"uid": "DEADBEEF", "items": [{"barcode": MILK, "qty": 1}]},
+        )
+        assert first.status_code == 200
+        assert second.status_code == 409
+        assert second.json()["detail"] == "duplicate checkout"
+
+
+def test_pos_body_validation() -> None:
+    with _client() as client:
+        empty_cart = client.post("/pos/checkout", json={"uid": "DEADBEEF", "items": []})
+        assert empty_cart.status_code == 422
+
+        empty_scan = client.post("/pos/scan", json={"barcode": ""})
+        assert empty_scan.status_code == 422
+
+        bad_kind = client.post(
+            "/pos/ledger",
+            json={"uid": "DEADBEEF", "kind": "gift", "amount_cents": 100},
+        )
+        assert bad_kind.status_code == 422
+
+        topup_zero = client.post(
+            "/pos/ledger",
+            json={"uid": "DEADBEEF", "kind": "topup", "amount_cents": 0},
+        )
+        assert topup_zero.status_code == 422

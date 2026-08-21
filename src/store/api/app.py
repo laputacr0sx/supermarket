@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import threading
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from sqlalchemy.engine import Engine
 
 from store.config import Settings, get_settings
 from store.persist.engine import create_schema, make_engine, make_session_factory
 
 
-def _lifespan(settings: Settings, engine):
+def _lifespan(
+    settings: Settings, engine: Engine | None
+) -> Callable[[FastAPI], AbstractAsyncContextManager[None]]:
     @asynccontextmanager
-    async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         eng = engine or make_engine(settings.database)
         create_schema(eng)
         app.state.engine = eng
@@ -26,7 +30,7 @@ def _lifespan(settings: Settings, engine):
     return lifespan
 
 
-def create_app(settings: Settings | None = None, *, engine=None) -> FastAPI:
+def create_app(settings: Settings | None = None, *, engine: Engine | None = None) -> FastAPI:
     settings = settings or get_settings()
     docs = "/docs" if settings.docs else None
     app = FastAPI(
@@ -41,7 +45,9 @@ def create_app(settings: Settings | None = None, *, engine=None) -> FastAPI:
     return app
 
 
-def create_admin_app(settings: Settings | None = None, *, engine=None) -> FastAPI:
+def create_admin_app(
+    settings: Settings | None = None, *, engine: Engine | None = None
+) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(
         title="store-admin",

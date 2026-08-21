@@ -19,13 +19,13 @@ def _client() -> TestClient:
     return TestClient(app)
 
 
-def test_format_sell_prints_name_and_yuan():
+def test_format_sell_prints_name_and_yuan() -> None:
     line = format_scan("sell", {"name": "麥片", "barcode": CEREAL, "price_cents": 1200})
     assert "麥片" in line
     assert "12元" in line
 
 
-def test_scan_lines_ready_learn_pending_reject():
+def test_scan_lines_ready_learn_pending_reject() -> None:
     with _client() as client:
         lines = scan_lines(client, [CEREAL, UNKNOWN_OK, UNKNOWN_OK, "not-a-code"])
     assert "麥片" in lines[0]

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from store.domain.errors import InactiveCard, InvalidLedger, NothingToVoid, UnknownCard
 from store.persist import repo
-from store.persist.tables import Ledger
+from store.persist.tables import Account, Card, Ledger
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def _live_account(session: Session, uid: str):
+def _live_account(session: Session, uid: str) -> tuple[Card, Account]:
     card = repo.get_card_by_uid(session, uid.upper().replace(":", "").replace(" ", ""))
     if card is None:
         raise UnknownCard(uid)

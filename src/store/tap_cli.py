@@ -4,28 +4,38 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Protocol
+from collections.abc import Mapping
+from typing import Protocol
 
 import httpx2
+from pydantic import ValidationError
 
+from store.api.schemas import CardOut, CheckoutOut, LedgerOut
 from store.config import get_settings
 from store.domain.money import format_yuan, yuan_to_cents
 from store.domain.uid import normalize_uid
 
 
+class HttpResponse(Protocol):
+    status_code: int
+
+    def json(self) -> object: ...
+
+
 class TapClient(Protocol):
-    def get(self, url: str) -> Any: ...
-    def post(self, url: str, json: dict) -> Any: ...
+    def get(self, url: str) -> HttpResponse: ...
+    def post(self, url: str, *, json: Mapping[str, object]) -> HttpResponse: ...
 
 
-def format_balance(card: dict) -> str:
-    name = card.get("name") or card.get("uid") or ""
+def format_balance(card: Mapping[str, object]) -> str:
+    raw_name = card.get("name") or card.get("uid") or ""
+    name = raw_name if isinstance(raw_name, str) else ""
     cents = card.get("balance_cents")
     extra = f" {format_yuan(cents)}" if isinstance(cents, int) else ""
     return f"{name}{extra}"
 
 
-def format_checkout(body: dict) -> str:
+def format_checkout(body: Mapping[str, object]) -> str:
     total = body.get("total_cents")
     left = body.get("balance_cents")
     bits = ["paid"]
@@ -43,7 +53,11 @@ def tap_balance(client: TapClient, uid: str) -> str:
         return "unknown card"
     if response.status_code != 200:
         return "error"
-    return format_balance(response.json())
+    try:
+        card = CardOut.model_validate(response.json())
+    except ValidationError:
+        return "error"
+    return format_balance(card.model_dump())
 
 
 def tap_pay(client: TapClient, uid: str, barcodes: list[str]) -> str:
@@ -51,9 +65,14 @@ def tap_pay(client: TapClient, uid: str, barcodes: list[str]) -> str:
     items = [{"barcode": code, "qty": 1} for code in barcodes]
     response = client.post("/pos/checkout", json={"uid": uid, "items": items})
     if response.status_code == 200:
-        return format_checkout(response.json())
+        try:
+            paid = CheckoutOut.model_validate(response.json())
+        except ValidationError:
+            return "error"
+        return format_checkout(paid.model_dump())
     if response.status_code == 402:
-        detail = response.json().get("detail")
+        payload = response.json()
+        detail = payload.get("detail") if isinstance(payload, dict) else None
         need = detail.get("need_cents") if isinstance(detail, dict) else None
         if isinstance(need, int):
             return f"need {format_yuan(need)}"
@@ -73,9 +92,11 @@ def tap_topup(client: TapClient, uid: str, amount_cents: int) -> str:
         return "unknown card"
     if response.status_code != 200:
         return "error"
-    body = response.json()
-    left = body.get("balance_cents")
-    extra = f" {format_yuan(left)}" if isinstance(left, int) else ""
+    try:
+        led = LedgerOut.model_validate(response.json())
+    except ValidationError:
+        return "error"
+    extra = f" {format_yuan(led.balance_cents)}"
     return f"topup{extra}"
 
 

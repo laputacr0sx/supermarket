@@ -30,7 +30,8 @@ Never commit `data/`, `*.db`, `.env`, secrets, or full card UIDs.
 
 ```
 uv sync
-uv run ruff check .
+uv run ruff check src tests
+uv run mypy
 uv run pytest
 ```
 

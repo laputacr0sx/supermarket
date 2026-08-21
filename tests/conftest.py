@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import os
+from collections.abc import Iterator
+
 import pytest
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from store.config import Settings
@@ -21,8 +25,17 @@ DRAFT = ean13("271840395761")
 UNKNOWN_OK = ean13("590123412345")
 
 
+@pytest.fixture(autouse=True)
+def isolate_store_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Host STORE_* and default.toml must not point tests at a real sqlite file."""
+    for key in list(os.environ):
+        if key.startswith("STORE_"):
+            monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("STORE_DATABASE", ":memory:")
+
+
 @pytest.fixture
-def engine():
+def engine() -> Iterator[Engine]:
     eng = make_engine(":memory:")
     create_schema(eng)
     yield eng
@@ -30,7 +43,7 @@ def engine():
 
 
 @pytest.fixture
-def session(engine) -> Session:
+def session(engine: Engine) -> Iterator[Session]:
     factory = make_session_factory(engine)
     sess = factory()
     yield sess

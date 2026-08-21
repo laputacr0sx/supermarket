@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from store.domain.errors import DuplicateCard
 from store.persist import repo
@@ -7,7 +8,7 @@ from store.persist.tables import Ledger
 from store.services import cards
 
 
-def test_enroll_child_with_opening_balance(session):
+def test_enroll_child_with_opening_balance(session: Session) -> None:
     card = cards.enroll(session, "aa:bb:cc:dd", "杏", role="child", opening_cents=1500)
     assert card.uid == "AABBCCDD"
     assert card.role == "child"
@@ -20,12 +21,12 @@ def test_enroll_child_with_opening_balance(session):
     assert rows[0].amount_cents == 1500
 
 
-def test_enroll_duplicate_uid_rejected(seeded):
+def test_enroll_duplicate_uid_rejected(seeded: Session) -> None:
     with pytest.raises(DuplicateCard):
         cards.enroll(seeded, "DEADBEEF", "twin")
 
 
-def test_enroll_staff_has_zero_shop_balance(session):
+def test_enroll_staff_has_zero_shop_balance(session: Session) -> None:
     card = cards.enroll(session, "0FF1CE00", "職員二", role="staff", opening_cents=0)
     assert card.role == "staff"
     account = repo.get_account(session, card.id)

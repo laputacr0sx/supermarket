@@ -4,12 +4,24 @@ from __future__ import annotations
 
 import argparse
 import time
+from typing import Any
 
 from store.config import get_settings
 from store.io.scanner import assemble
 from store.kiosk.client import Api
 from store.kiosk.draw import H, W, find_cjk_font, paint
-from store.kiosk.fsm import Barcode, Key, StaffUnlock, Tick, Uid, idle, step, view
+from store.kiosk.fsm import (
+    Barcode,
+    Effect,
+    Key,
+    KioskState,
+    StaffUnlock,
+    Tick,
+    Uid,
+    idle,
+    step,
+    view,
+)
 
 DEMO = {
     "a": "DEADBEEF",
@@ -17,7 +29,7 @@ DEMO = {
 }
 
 
-def _apply(state, effect, api):
+def _apply(state: KioskState, effect: Effect, api: Api) -> KioskState:
     if effect.kind == "scan" and effect.code:
         return step(state, api.scan(effect.code), now=time.monotonic())[0]
     if effect.kind == "checkout" and effect.uid:
@@ -46,9 +58,9 @@ def run() -> None:
     pygame.display.set_caption("士多")
     pygame.mouse.set_visible(False)
     font_path = find_cjk_font()
-    cache: dict[int, object] = {}
+    cache: dict[int, Any] = {}
 
-    def fonts_render(text: str, size: int, color: tuple[int, int, int]):
+    def fonts_render(text: str, size: int, color: tuple[int, int, int]) -> object:
         if size not in cache:
             font = pygame.freetype.Font(font_path, size)
             font.pad = True

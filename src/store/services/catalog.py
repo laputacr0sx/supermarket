@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Literal
 
 from sqlalchemy.orm import Session
 
@@ -11,28 +12,17 @@ from store.persist import repo
 from store.persist.tables import Product
 
 
+type ScanAction = Literal["sell", "inactive", "pending", "learned", "reject"]
+
+
 @dataclass(frozen=True)
 class ScanResult:
-    action: str  # sell | inactive | pending | learned | reject
+    action: ScanAction
     product: Product | None
 
 
 def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
-
-
-def product_to_dict(product: Product) -> dict:
-    return {
-        "id": product.id,
-        "barcode": product.barcode,
-        "origin": product.origin,
-        "status": product.status,
-        "name": product.name,
-        "price_cents": product.price_cents,
-        "stock": product.stock,
-        "image_path": product.image_path,
-        "active": bool(product.active),
-    }
 
 
 def lookup(session: Session, raw: str) -> Product:

@@ -4,23 +4,34 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Protocol
+from collections.abc import Mapping
+from typing import Protocol
 
 import httpx2
+from pydantic import ValidationError
 
+from store.api.schemas import ScanOut
 from store.config import get_settings
 from store.domain.money import format_yuan
 
 
+class HttpResponse(Protocol):
+    status_code: int
+
+    def json(self) -> object: ...
+
+
 class ScanClient(Protocol):
-    def post(self, url: str, json: dict[str, str]) -> Any: ...
+    def post(self, url: str, *, json: Mapping[str, str]) -> HttpResponse: ...
 
 
-def format_scan(action: str, product: dict | None) -> str:
-    code = (product or {}).get("barcode") or ""
+def format_scan(action: str, product: Mapping[str, object] | None) -> str:
+    raw_code = (product or {}).get("barcode") or ""
+    code = raw_code if isinstance(raw_code, str) else ""
     tail = code[-4:] if code else ""
     if action == "sell" and product:
-        name = product.get("name") or code
+        raw_name = product.get("name")
+        name = raw_name if isinstance(raw_name, str) else code
         cents = product.get("price_cents")
         extra = f" {format_yuan(cents)}" if isinstance(cents, int) else ""
         return f"{name}{extra}"
@@ -33,20 +44,6 @@ def format_scan(action: str, product: dict | None) -> str:
     return action
 
 
-def _action_from_body(body: object) -> str:
-    if not isinstance(body, dict):
-        return "error"
-    action = body.get("action")
-    if isinstance(action, str):
-        return action
-    detail = body.get("detail")
-    if isinstance(detail, dict):
-        nested = detail.get("action")
-        if isinstance(nested, str):
-            return nested
-    return "error"
-
-
 def scan_lines(client: ScanClient, barcodes: list[str]) -> list[str]:
     lines: list[str] = []
     for raw in barcodes:
@@ -57,11 +54,13 @@ def scan_lines(client: ScanClient, barcodes: list[str]) -> list[str]:
         if response.status_code not in {200, 201}:
             lines.append("error")
             continue
-        body = response.json()
-        product = body.get("product") if isinstance(body, dict) else None
-        if not isinstance(product, dict):
-            product = None
-        lines.append(format_scan(_action_from_body(body), product))
+        try:
+            parsed = ScanOut.model_validate(response.json())
+        except ValidationError:
+            lines.append("error")
+            continue
+        product = parsed.product.model_dump() if parsed.product else None
+        lines.append(format_scan(parsed.action, product))
     return lines
 
 
